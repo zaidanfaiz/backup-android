@@ -274,10 +274,7 @@ pub fn restore_app(
             bail!("Required private app directory does not exist: {target}");
         }
         if adb.directory_exists(&target)? {
-            let probe = format!(
-                "find {} -type l -print | head -n 1",
-                shell_quote(&target)
-            );
+            let probe = format!("find {} -type l -print | head -n 1", shell_quote(&target));
             if !adb.root_text(&probe)?.trim().is_empty() {
                 bail!("Restore target contains symlinks; refusing unsafe root extraction");
             }
