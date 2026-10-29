@@ -190,6 +190,39 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void BackupPreset_Changed(object sender, SelectionChangedEventArgs args)
+    {
+        // XAML can fire SelectionChanged before all controls are initialized.
+        if (ApkCheck is null || PrivateDataCheck is null || AppExternalCheck is null
+            || AppObbCheck is null || AppMediaCheck is null)
+            return;
+
+        switch (BackupPreset.SelectedIndex)
+        {
+            case 0: // Complete
+                ApkCheck.IsChecked = true;
+                PrivateDataCheck.IsChecked = true;
+                AppExternalCheck.IsChecked = true;
+                AppObbCheck.IsChecked = true;
+                AppMediaCheck.IsChecked = true;
+                break;
+            case 1: // App + private data
+                ApkCheck.IsChecked = true;
+                PrivateDataCheck.IsChecked = true;
+                AppExternalCheck.IsChecked = false;
+                AppObbCheck.IsChecked = false;
+                AppMediaCheck.IsChecked = false;
+                break;
+            case 2: // APK only
+                ApkCheck.IsChecked = true;
+                PrivateDataCheck.IsChecked = false;
+                AppExternalCheck.IsChecked = false;
+                AppObbCheck.IsChecked = false;
+                AppMediaCheck.IsChecked = false;
+                break;
+        }
+    }
+
     private void AppSearch_TextChanged(object sender, TextChangedEventArgs args) => RebuildAppList();
 
     private void Applications_SelectionChanged(object sender, SelectionChangedEventArgs args)
