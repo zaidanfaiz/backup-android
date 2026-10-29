@@ -24,6 +24,10 @@ public sealed partial class MainWindow : Window
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(5) };
     private CancellationTokenSource? _activeWork;
     private bool _rootVerified;
+    private bool _isBusy;
+    private bool _updatingAppList;
+    private readonly List<string> _availableApps = new();
+    private readonly HashSet<string> _selectedApps = new(StringComparer.Ordinal);
 
     public MainWindow()
     {
@@ -59,6 +63,9 @@ public sealed partial class MainWindow : Window
 
     private void OnNavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
+        // WinUI can raise SelectionChanged while XAML fields are still being created.
+        if (OverviewPage is null || ApplicationsPage is null || StoragePage is null
+            || SecurityPage is null || SetupPage is null) return;
         var tag = (args.SelectedItem as NavigationViewItem)?.Tag?.ToString() ?? "overview";
         OverviewPage.Visibility = tag == "overview" ? Visibility.Visible : Visibility.Collapsed;
         ApplicationsPage.Visibility = tag == "apps" ? Visibility.Visible : Visibility.Collapsed;
@@ -69,6 +76,7 @@ public sealed partial class MainWindow : Window
 
     private void Log(string message)
     {
+        StartupDiagnostics.Write($"Activity: {message}");
         _activity.Insert(0, $"{DateTime.Now:HH:mm:ss}  {message}");
         while (_activity.Count > 120) _activity.RemoveAt(_activity.Count - 1);
         FooterText.Text = message;
@@ -76,12 +84,51 @@ public sealed partial class MainWindow : Window
 
     private void SetBusy(bool busy, bool cancellable = false)
     {
+        _isBusy = busy;
         StartButton.IsEnabled = !busy;
         CancelButton.IsEnabled = busy && cancellable;
         WorkProgress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private string SelectedDevice => DeviceCombo.SelectedItem?.ToString() ?? "";
+
+    private void RebuildAppList()
+    {
+        if (ApplicationChoices is null || AppCount is null || AppSearchBox is null) return;
+        _updatingAppList = true;
+        try
+        {
+            ApplicationChoices.Items.Clear();
+            var search = AppSearchBox.Text?.Trim() ?? string.Empty;
+            foreach (var package in _availableApps)
+            {
+                if (package.Contains(search, StringComparison.OrdinalIgnoreCase))
+                    ApplicationChoices.Items.Add(package);
+            }
+            foreach (var package in ApplicationChoices.Items.Cast<string>())
+            {
+                if (_selectedApps.Contains(package))
+                    ApplicationChoices.SelectedItems.Add(package);
+            }
+            AppCount.Text = $"{_selectedApps.Count} selected / {_availableApps.Count} installed";
+        }
+        finally
+        {
+            _updatingAppList = false;
+        }
+    }
+
+    private void AppSearch_TextChanged(object sender, TextChangedEventArgs args) => RebuildAppList();
+
+    private void Applications_SelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (_updatingAppList) return;
+        foreach (var item in args.RemovedItems.OfType<string>())
+            _selectedApps.Remove(item);
+        foreach (var item in args.AddedItems.OfType<string>())
+            _selectedApps.Add(item);
+        AppCount.Text = $"{_selectedApps.Count} selected / {_availableApps.Count} installed";
+    }
     private string AdbExecutable => string.IsNullOrWhiteSpace(AdbPathBox.Text) ? "adb" : AdbPathBox.Text.Trim();
 
     private void HandleEvent(JsonElement data)
@@ -105,11 +152,16 @@ public sealed partial class MainWindow : Window
                 _rootVerified = rootProperty.ValueKind == JsonValueKind.String;
                 DeviceInfo.Text = $"{model}  |  Android {android}  |  " +
                     (_rootVerified ? $"Root: {rootProperty.GetString()}" : "Root unavailable");
-                ApplicationChoices.Items.Clear();
+                _availableApps.Clear();
+                _selectedApps.Clear();
                 foreach (var item in data.GetProperty("packages").EnumerateArray())
-                    ApplicationChoices.Items.Add(item.GetString() ?? "");
-                ApplicationChoices.SelectAll();
-                AppCount.Text = $"{ApplicationChoices.Items.Count} apps found";
+                {
+                    var package = item.GetString();
+                    if (string.IsNullOrWhiteSpace(package)) continue;
+                    _availableApps.Add(package);
+                    _selectedApps.Add(package);
+                }
+                RebuildAppList();
                 Log(DeviceInfo.Text);
                 break;
             case "progress":
@@ -190,12 +242,35 @@ public sealed partial class MainWindow : Window
 
     private async Task RunBackendAsync(object request, bool cancellable = false)
     {
+        if (_isBusy)
+        {
+            Log("Another operation is active. Cancel it or finish it before starting another.");
+            return;
+        }
         using var source = new CancellationTokenSource();
         _activeWork = source;
         SetBusy(true, cancellable);
         try
         {
-            await _backend.RunAsync(request, HandleEvent, source.Token);
+            // Read the ADB process off the UI thread and marshal all events back
+            // through the native WinUI DispatcherQueue. Never update controls
+            // directly from the worker thread.
+            await Task.Run(() => _backend.RunAsync(request, data =>
+            {
+                var queued = DispatcherQueue.TryEnqueue(() =>
+                {
+                    try
+                    {
+                        HandleEvent(data);
+                    }
+                    catch (Exception error)
+                    {
+                        StartupDiagnostics.Report("Handling backup engine event", error);
+                    }
+                });
+                if (!queued)
+                    StartupDiagnostics.Write("WinUI event discarded: window dispatcher unavailable");
+            }, source.Token), source.Token);
         }
         catch (OperationCanceledException)
         {
@@ -252,8 +327,12 @@ public sealed partial class MainWindow : Window
         if (ExternalMediaCheck.IsChecked == true) storage.Add("Android/media");
         if (ObbCheck.IsChecked == true) storage.Add("Android/obb");
 
-        var apps = ApplicationChoices.SelectedItems
-            .Cast<string>().Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
+        var apps = _selectedApps.OrderBy(x => x, StringComparer.Ordinal).ToArray();
+        if (apps.Length == 0 && storage.Count == 0)
+        {
+            Log("Choose one app or media folder to back up.");
+            return;
+        }
         await RunBackendAsync(new
         {
             action = "backup",
@@ -262,6 +341,11 @@ public sealed partial class MainWindow : Window
             destination = DestinationBox.Text,
             packages = apps,
             storage,
+            backup_apk = ApkCheck.IsChecked == true,
+            backup_private_data = PrivateDataCheck.IsChecked == true,
+            backup_external_data = AppExternalCheck.IsChecked == true,
+            backup_obb = AppObbCheck.IsChecked == true,
+            backup_app_media = AppMediaCheck.IsChecked == true,
             force_stop = StopAppsCheck.IsChecked == true
         }, cancellable: true);
     }
@@ -275,8 +359,19 @@ public sealed partial class MainWindow : Window
         await RunBackendAsync(new { action = "verify", folder = selected });
     }
 
-    private void SelectAllApps_Click(object sender, RoutedEventArgs e) => ApplicationChoices.SelectAll();
-    private void ClearApps_Click(object sender, RoutedEventArgs e) => ApplicationChoices.SelectedItems.Clear();
+    private void SelectAllApps_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+        foreach (var app in _availableApps) _selectedApps.Add(app);
+        RebuildAppList();
+    }
+
+    private void ClearApps_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+        _selectedApps.Clear();
+        RebuildAppList();
+    }
 
     private async void Destination_Click(object sender, RoutedEventArgs e)
     {
