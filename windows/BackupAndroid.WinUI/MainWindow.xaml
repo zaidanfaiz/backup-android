@@ -75,7 +75,8 @@
                                                TextWrapping="Wrap" Foreground="#DCEFEB"/>
                                     <TextBlock Text="Root required for protected app data" FontSize="12" Opacity="0.75"/>
                                 </StackPanel>
-                                <SymbolIcon Grid.Column="1" Symbol="Save" Foreground="#B5F5E7"/>
+                                <Button Grid.Column="1" Content="Restore app data" Click="OpenRestore_Click"
+                                        HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
