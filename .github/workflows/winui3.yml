@@ -144,6 +144,9 @@ jobs:
           if ($content -notmatch 'UI smoke: navigation, five scroll viewers and app filtering passed') {
             throw "WinUI navigation and scroll smoke marker missing"
           }
+          if ($content -notmatch 'UI smoke: app data backup presets passed') {
+            throw "WinUI app backup profile smoke marker missing"
+          }
           if ($content -match 'Unhandled XAML exception|WinUI window initialization:') {
             throw "WinUI reported an XAML startup error during navigation smoke test"
           }
