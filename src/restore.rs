@@ -175,12 +175,52 @@ pub fn plan(folder: &Path, device: &Device) -> Result<RestorePlan> {
         artifacts_verified: verified,
         caveats: vec![
             "Only user 0 on the original device and Android version is supported",
-            "The app must already be installed with its original signing identity",
+            "The original APK version and all split APK files must already be installed unchanged",
             "Restore merges app data into the existing installation and can overwrite files",
             "Android Keystore-backed secrets and hardware-bound sessions may not survive",
             "A full pre-restore safety backup is mandatory",
         ],
     })
+}
+
+fn verify_installed_apks(adb: &Adb, manifest: &Manifest, package: &str) -> Result<()> {
+    // A package name alone does not establish the application's signing
+    // identity. Until certificate-aware restore is implemented, require
+    // bit-for-bit identical APK and split APK files on the target device.
+    let prefix = format!("apps/{package}/apk/");
+    let mut archived: Vec<String> = manifest
+        .artifacts
+        .iter()
+        .filter(|artifact| {
+            matches!(artifact.kind, ArtifactKind::Apk) && artifact.path.starts_with(&prefix)
+        })
+        .map(|artifact| artifact.sha256.to_ascii_lowercase())
+        .collect();
+    if archived.is_empty() {
+        bail!("Restore requires an APK backup to verify the installed app identity");
+    }
+    let paths = adb.apk_paths(package)?;
+    if paths.len() != archived.len() {
+        bail!("Installed APK/split count differs from the backup; restore refused");
+    }
+    let mut installed = Vec::new();
+    for path in paths {
+        let output = adb.root_text(&format!("sha256sum {}", shell_quote(&path)))?;
+        let digest = output
+            .split_whitespace()
+            .next()
+            .context("Android did not return an APK SHA-256 hash")?;
+        if digest.len() != 64 || !digest.bytes().all(|ch| ch.is_ascii_hexdigit()) {
+            bail!("Android returned an invalid APK digest");
+        }
+        installed.push(digest.to_ascii_lowercase());
+    }
+    archived.sort_unstable();
+    installed.sort_unstable();
+    if archived != installed {
+        bail!("Installed APK differs from backup; app version/signature compatibility cannot be guaranteed");
+    }
+    Ok(())
 }
 
 fn original_owner(adb: &Adb, directory: &str) -> Result<String> {
@@ -240,8 +280,8 @@ pub fn restore_app(
 
     // The package must already exist. Never install arbitrary APK archives
     // automatically. Android itself enforces signing and package identity.
-    adb.apk_paths(package)
-        .context("Install the same signed app before restoring its private data")?;
+    verify_installed_apks(&adb, &manifest, package)
+        .context("App package identity preflight failed")?;
     let private_dir = format!("/data/user/0/{package}");
     if !adb.directory_exists(&private_dir)? {
         bail!("Installed application data directory is missing; launch the app once, then retry");
