@@ -4,7 +4,7 @@ Native, local-first Android backup desktop application written in Rust.
 
 This project uses Android Debug Bridge (ADB) and an **already-active root shell** to back up installed APKs, private app data and shared storage to a desktop computer. Root access is a hard prerequisite. The tool does not root or unlock Android devices.
 
-**Status: v0.1.1 development.** Backup and SHA-256 verification are implemented. Automatic restore, encryption, compression and user-profile migration are not yet implemented.
+**Status: v0.2.0 development.** Backup and SHA-256 verification are implemented. Automatic restore, encryption, compression and user-profile migration are not yet implemented.
 
 ## Features
 
@@ -32,6 +32,27 @@ This project uses Android Debug Bridge (ADB) and an **already-active root shell*
 7. Unlock Android's primary user after boot to access credential-encrypted data.
 
 This application does not rely on the restricted Android adb backup format. It uses adb exec-out and the already-authorized root shell.
+
+## Modern desktop interface and setup
+
+Version 0.2.0 reorganizes the desktop app into four navigation pages: **Overview**, **Applications**, **Photos & files**, and **Setup & drivers**. The application logo is always visible in the header, in addition to the window and executable icons.
+
+**ADB installation in the app**
+
+1. Open **Setup & drivers** and click **Download official ZIP**. Review and accept Google's SDK license on the official page.
+2. Save the Platform Tools ZIP, then click **Install downloaded ZIP**.
+3. The app checks archive paths and size limits, extracts it into a new folder under the user-local application data directory, and sets the new ADB executable path automatically.
+4. Connect the Android device, authorize the USB debugging prompt, then refresh and inspect.
+
+**Windows USB drivers**
+
+- For Google devices, **Google USB driver** opens the official download page. For non-Google devices, **OEM driver directory** opens Google's manufacturer link directory.
+- After getting the correct driver from its publisher, select its `.inf` through **Install selected INF**. The app invokes Windows' built-in `pnputil /add-driver /install` with a standard UAC consent prompt. It does not silently install an unverified driver.
+- Use **Device Manager** to inspect the result. Launching the installer does not mean the driver necessarily matched your phone.
+- Installing a mismatched driver can cause connection problems. Do not use Google drivers blindly for Xiaomi, POCO, Samsung or other brands.
+- The current portable EXE statically links the MSVC runtime. A separate **Download official VC++ x64 runtime** link is supplied only as an optional compatibility download for other Windows applications.
+
+No driver ZIP or executable is mirrored by this project. The supported downloads open their official publisher pages.
 
 ## Windows portable executable
 

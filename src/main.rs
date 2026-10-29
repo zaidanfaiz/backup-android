@@ -3,6 +3,7 @@
 mod adb;
 mod backup;
 mod manifest;
+mod setup;
 mod ui;
 
 fn main() -> eframe::Result<()> {
@@ -14,8 +15,8 @@ fn main() -> eframe::Result<()> {
 
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
-            .with_inner_size([1040.0, 750.0])
-            .with_min_inner_size([760.0, 540.0])
+            .with_inner_size([1120.0, 780.0])
+            .with_min_inner_size([860.0, 640.0])
             .with_icon(icon),
         ..Default::default()
     };
@@ -23,6 +24,6 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Android Backup",
         options,
-        Box::new(|_cc| Ok(Box::new(ui::BackupApp::new()))),
+        Box::new(|cc| Ok(Box::new(ui::BackupApp::new(cc)))),
     )
 }

@@ -46,15 +46,24 @@ jobs:
           $pe = [BitConverter]::ToInt32($content, 0x3C)
           $subsystem = [BitConverter]::ToUInt16($content, $pe + 24 + 68)
           if ($subsystem -ne 2) { throw "Expected Windows GUI subsystem (2), got $subsystem" }
-          $ascii = [System.Text.Encoding]::ASCII.GetString($content)
-          if ($ascii -match '(?i)VCRUNTIME140') {
-            throw "Possible dynamic VC runtime dependency found in exe"
+          # Check actual PE imports instead of matching arbitrary binary strings.
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (-not (Test-Path $vswhere)) { throw 'Visual Studio vswhere.exe missing on Windows runner' }
+          $vs = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
+          if (-not $vs) { throw 'MSVC C++ build tools missing on runner' }
+          $dumpbin = Get-ChildItem (Join-Path $vs 'VC\Tools\MSVC') -Recurse -Filter dumpbin.exe |
+            Where-Object { $_.FullName -like '*Hostx64*x64*' } | Select-Object -First 1
+          if (-not $dumpbin) { throw 'Cannot find MSVC dumpbin.exe' }
+          $dependencies = (& $dumpbin.FullName /DEPENDENTS $exe) -join "`n"
+          if ($LASTEXITCODE -ne 0) { throw 'dumpbin failed to read PE dependencies' }
+          if ($dependencies -match '(?im)^\s*VCRUNTIME140(?:_1)?\.dll\s*$') {
+            throw 'The EXE dynamically imports VCRUNTIME140.dll'
           }
           Add-Type -AssemblyName System.Drawing
           $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)
           if ($null -eq $icon) { throw "Executable icon missing" }
           $icon.Dispose()
-          Write-Host "Validated Windows GUI subsystem, no VC runtime string, executable icon."
+          Write-Host "Validated Windows GUI subsystem, no dynamic VC runtime imports, executable icon."
 
       - name: Upload Windows portable release
         if: runner.os == 'Windows'
