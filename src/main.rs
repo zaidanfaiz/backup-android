@@ -110,7 +110,9 @@ fn execute(request: Request) -> Result<()> {
             })?;
             emit(json!({ "type": "ransomware_scan", "report": report }));
         }
-        _ => bail!("Unsupported action. Valid actions: devices, inspect, backup, verify, scan_ransomware"),
+        _ => bail!(
+            "Unsupported action. Valid actions: devices, inspect, backup, verify, scan_ransomware"
+        ),
     }
     Ok(())
 }
