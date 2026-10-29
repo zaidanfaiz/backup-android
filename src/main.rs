@@ -167,7 +167,8 @@ mod tests {
         assert!(request.backup_apk);
         let selective: Request = serde_json::from_str(
             r#"{"action":"backup","backup_apk":false,"backup_private_data":true}"#,
-        ).unwrap();
+        )
+        .unwrap();
         assert!(!selective.backup_apk);
         assert!(selective.backup_private_data);
     }
