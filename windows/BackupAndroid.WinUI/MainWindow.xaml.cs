@@ -29,7 +29,14 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         Title = "Android Backup";
-        SystemBackdrop = new MicaBackdrop();
+        try
+        {
+            SystemBackdrop = new MicaBackdrop();
+        }
+        catch (Exception error)
+        {
+            StartupDiagnostics.Write($"Mica backdrop unavailable, using normal background: {error.Message}");
+        }
         ActivityList.ItemsSource = _activity;
         DestinationBox.Text = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "AndroidBackups");
@@ -37,8 +44,15 @@ public sealed partial class MainWindow : Window
         var hwnd = WindowNative.GetWindowHandle(this);
         var appWindow = AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd));
         var icon = Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico");
-        if (File.Exists(icon)) appWindow.SetIcon(icon);
-        appWindow.Resize(new Windows.Graphics.SizeInt32(1180, 800));
+        try
+        {
+            if (File.Exists(icon)) appWindow.SetIcon(icon);
+            appWindow.Resize(new Windows.Graphics.SizeInt32(1180, 800));
+        }
+        catch (Exception error)
+        {
+            StartupDiagnostics.Write($"Optional window decoration unavailable: {error.Message}");
+        }
         Shell.SelectedItem = Shell.MenuItems[0];
         Log("WinUI 3 ready. Windows administrator permission was requested at startup.");
     }

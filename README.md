@@ -2,7 +2,7 @@
 
 A Windows-native Android backup utility using **WinUI 3** for the interface and **Rust** for the backup engine.
 
-**v0.3.0 preview**: WinUI 3 has replaced egui. An administrator UAC prompt is intentionally requested on every launch.
+**v0.3.1 preview**: A native Windows launcher now separates the WinUI 3 runtime from the top-level executable and reports startup failures. UAC remains required when WinUI starts.
 
 ## Features
 
@@ -16,14 +16,41 @@ A Windows-native Android backup utility using **WinUI 3** for the interface and 
 - Driver INF selection and confirmation before elevated Windows PnPUtil installation.
 - Optional link to Microsoft's VC++ Redistributable.
 
-## Windows download
+## Windows download and folder structure
 
-Open the latest successful **WinUI 3 Windows desktop** GitHub Actions run, download artifact
-**android-backup-winui3-win-x64**, extract the archive and its inner ZIP, and keep
-the complete AndroidBackup folder. Double-click AndroidBackup.exe and accept UAC.
+Download the latest successful **WinUI 3 Windows desktop** artifact named
+**AndroidBackup-WinUI3-Windows-x64**. Extract it once and run the top-level
+`AndroidBackup.exe`. Windows will request UAC elevation.
 
-The application ships as a self-contained folder, not the old single Rust GUI executable.
-Do not copy AndroidBackup.exe away from its runtime dependencies and backend folder.
+```text
+AndroidBackup/
+├── AndroidBackup.exe        Windows launcher with app icon
+├── README.txt
+└── App/
+    ├── AndroidBackup.exe    WinUI 3 executable
+    ├── *.dll, *.pri         Required co-located Windows / .NET runtime
+    ├── Assets/              Application icons
+    ├── backend/             Rust backup engine
+    └── en-US/, ...          Windows language resources
+```
+
+The launcher reports missing runtime files and early WinUI crashes instead
+of silently exiting. Startup logs are stored in
+`%LOCALAPPDATA%\\AndroidBackup\\Logs\\launcher.log` and
+`%LOCALAPPDATA%\\AndroidBackup\\Logs\\startup.log`.
+
+**Why the App folder contains DLL files:** WinUI 3 and native Windows
+DLL loading require some DLLs next to the real application executable.
+Renaming or moving them into an arbitrary DLL folder can prevent startup.
+Instead, the release keeps the root directory clean and contains all WinUI
+dependencies under `App/`; language files remain in their legitimate
+locale-specific subfolders.
+
+The release process validates the bundled Rust engine, icon and WinUI
+runtime resources, and runs a launcher installation preflight.
+A successful compile or packaging check does not prove it works on every PC.
+If the app still fails to open, the included README explains how to collect
+the startup log and Windows Application event code.
 
 ## Requirements
 

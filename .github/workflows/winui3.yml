@@ -12,7 +12,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
-    name: Build WinUI 3 application
+    name: Build Windows launcher and WinUI 3 runtime
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -21,37 +21,53 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build Rust backup engine
-        run: cargo build --release --bin backup-android-core
+      - name: Build Rust engine and native Windows launcher
+        run: cargo build --release --bin backup-android-core --bin AndroidBackup
 
-      - name: Publish self-contained WinUI 3 frontend
+      - name: Publish WinUI 3 into private application directory
         shell: pwsh
         run: |
-          dotnet publish windows/BackupAndroid.WinUI/BackupAndroid.WinUI.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -o "$env:GITHUB_WORKSPACE/dist/AndroidBackup"
+          dotnet publish windows/BackupAndroid.WinUI/BackupAndroid.WinUI.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:PublishTrimmed=false -o "$env:GITHUB_WORKSPACE/dist/AndroidBackup/App"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Bundle Rust engine and check output
+      - name: Stage human-friendly portable application layout
         shell: pwsh
         run: |
           $out = "$env:GITHUB_WORKSPACE/dist/AndroidBackup"
-          New-Item -ItemType Directory -Force -Path "$out/backend" | Out-Null
-          Copy-Item target/release/backup-android-core.exe "$out/backend/backup-android-core.exe"
-          if (-not (Test-Path "$out/AndroidBackup.exe")) { throw "WinUI executable missing" }
-          if (-not (Test-Path "$out/Assets/icon.ico")) { throw "App icon missing" }
-          if (-not (Test-Path "$out/backend/backup-android-core.exe")) { throw "Rust backend missing" }
+          New-Item -ItemType Directory -Force -Path "$out/App/backend" | Out-Null
+          Copy-Item target/release/AndroidBackup.exe "$out/AndroidBackup.exe"
+          Copy-Item target/release/backup-android-core.exe "$out/App/backend/backup-android-core.exe"
+          Copy-Item docs/WINDOWS_INSTALL.txt "$out/README.txt"
+          if (-not (Test-Path "$out/AndroidBackup.exe")) { throw "Native launcher missing" }
+          if (-not (Test-Path "$out/App/AndroidBackup.exe")) { throw "WinUI executable missing" }
+          if (-not (Test-Path "$out/App/AndroidBackup.pri")) { throw "WinUI resource index missing" }
+          if (-not (Test-Path "$out/App/Microsoft.ui.xaml.dll")) { throw "WinUI runtime DLL missing" }
+          if (-not (Test-Path "$out/App/Assets/icon.ico")) { throw "App icon missing" }
+          if (-not (Test-Path "$out/App/backend/backup-android-core.exe")) { throw "Rust engine missing" }
           $manifest = Get-Content windows/BackupAndroid.WinUI/app.manifest -Raw
-          if ($manifest -notmatch 'requestedExecutionLevel level="requireAdministrator"') {
-            throw "UAC declaration missing"
-          }
+          if ($manifest -notmatch 'requestedExecutionLevel level="requireAdministrator"') { throw "UAC declaration missing" }
+          $topFiles = @(Get-ChildItem -LiteralPath $out -File)
+          if ($topFiles.Count -ne 2) { throw "Unexpected files in release root: $($topFiles.Name -join ', ')" }
+          Write-Host "Verified clean portable root with EXE + README; runtime, languages and engine are nested under App."
 
-      - name: Zip complete portable folder
+      - name: Automated installation preflight
         shell: pwsh
         run: |
-          Compress-Archive -Path "$env:GITHUB_WORKSPACE/dist/AndroidBackup" -DestinationPath "$env:GITHUB_WORKSPACE/dist/AndroidBackup-win-x64.zip"
+          $out = "$env:GITHUB_WORKSPACE/dist/AndroidBackup"
+          $check = Start-Process -FilePath "$out/AndroidBackup.exe" -ArgumentList "--check-install" -WorkingDirectory $out -Wait -PassThru
+          if ($check.ExitCode -ne 0) {
+            $log = Join-Path $env:LOCALAPPDATA "AndroidBackup/Logs/launcher.log"
+            if (Test-Path $log) { Get-Content $log -Tail 10 }
+            throw "Launcher installation preflight failed (exit code $($check.ExitCode))"
+          }
+          $log = Join-Path $env:LOCALAPPDATA "AndroidBackup/Logs/launcher.log"
+          if (-not (Test-Path $log)) { throw "Expected launcher diagnostic log missing" }
+          Get-Content $log -Tail 5
 
-      - name: Upload Windows executable bundle
+      - name: Upload complete portable application
         uses: actions/upload-artifact@v4
         with:
-          name: android-backup-winui3-win-x64
-          path: dist/AndroidBackup-win-x64.zip
+          name: AndroidBackup-WinUI3-Windows-x64
+          path: dist/AndroidBackup/
           if-no-files-found: error
+          compression-level: 6

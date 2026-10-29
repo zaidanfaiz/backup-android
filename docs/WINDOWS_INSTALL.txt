@@ -1,0 +1,47 @@
+ANDROID BACKUP - WINDOWS
+========================
+
+1. Extract the complete GitHub Actions artifact to a local folder.
+2. Double-click AndroidBackup.exe next to this README file.
+3. Approve the Windows administrator (UAC) prompt.
+4. Leave the App folder intact. It contains WinUI runtime DLLs, Windows
+   language resources, icons and the separate Rust backup engine.
+5. Connect an Android device, enable USB debugging, and activate temp root.
+6. Use the in-app setup page to install ADB if necessary.
+
+FOLDER STRUCTURE
+----------------
+AndroidBackup/
+  AndroidBackup.exe       Main launcher (starts the WinUI 3 app)
+  README.txt
+  App/
+    AndroidBackup.exe     WinUI 3 application (requires UAC)
+    *.dll, *.pri          WinUI 3 / .NET runtime (must remain alongside the app)
+    Assets/               Icons and images
+    backend/              Rust backup engine
+    en-US/, ...           Windows language resources
+
+Do not launch App/AndroidBackup.exe directly or move individual DLL files.
+Do not copy AndroidBackup.exe without its companion App folder.
+
+STARTUP TROUBLESHOOTING
+-----------------------
+When the application cannot be opened, look in:
+  %LOCALAPPDATA%\AndroidBackup\Logs\launcher.log
+  %LOCALAPPDATA%\AndroidBackup\Logs\startup.log
+
+The launcher verifies required files and reports early startup failures.
+If startup.log is absent, failure may have happened before the WinUI managed
+entry point ran. Check Windows Event Viewer -> Windows Logs -> Application
+for events around the attempted launch. Capture the faulting module and
+exception code. Send only the relevant error details, not private files.
+
+Windows administrator permission DOES NOT give the Android device root.
+The phone must already have an active root shell.
+
+Release requirements: Windows 10 19041+ or Windows 11 x64, full archive
+extracted, and a local destination with enough free disk space.
+
+The backup files themselves may contain sensitive data and are unencrypted.
+Use only on Android devices and user profiles you own or are authorized to
+manage.
