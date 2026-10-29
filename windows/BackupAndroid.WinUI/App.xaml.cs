@@ -43,6 +43,15 @@ public partial class App : Application
             _window = new MainWindow();
             _window.Activate();
             StartupDiagnostics.Write("Main window activated.");
+
+            if (Environment.GetCommandLineArgs().Contains("--ui-smoke", StringComparer.Ordinal))
+            {
+                StartupDiagnostics.Write("Running interactive WinUI smoke test.");
+                if (_window is MainWindow mainWindow)
+                    mainWindow.RunUiSmokeCheck();
+                StartupDiagnostics.Write("UI smoke complete.");
+                Exit();
+            }
         }
         catch (Exception error)
         {

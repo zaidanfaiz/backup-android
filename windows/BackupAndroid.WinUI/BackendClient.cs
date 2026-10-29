@@ -41,6 +41,7 @@ public sealed class BackendClient
             catch (InvalidOperationException) { }
         });
         var stderrTask = process.StandardError.ReadToEndAsync();
+        string? backendError = null;
 
         await process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(request));
         process.StandardInput.Close();
@@ -50,15 +51,20 @@ public sealed class BackendClient
             var line = await process.StandardOutput.ReadLineAsync(token);
             if (line is null) break;
             using var message = JsonDocument.Parse(line);
-            onEvent(message.RootElement.Clone());
+            var element = message.RootElement;
+            if (element.TryGetProperty("type", out var type)
+                && type.GetString() == "error"
+                && element.TryGetProperty("message", out var detail))
+                backendError = detail.GetString();
+            onEvent(element.Clone());
         }
 
         await process.WaitForExitAsync(token);
         var stderr = await stderrTask;
         if (process.ExitCode != 0)
             throw new InvalidOperationException(
-                string.IsNullOrWhiteSpace(stderr)
-                    ? "The Rust engine reported an error. See the activity log."
-                    : stderr.Trim());
+                backendError ?? (string.IsNullOrWhiteSpace(stderr)
+                    ? "The Rust engine failed. Check the activity log for details."
+                    : stderr.Trim()));
     }
 }

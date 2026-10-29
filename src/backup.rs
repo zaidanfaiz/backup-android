@@ -31,6 +31,11 @@ pub struct BackupOptions {
     pub packages: Vec<String>,
     pub storage: Vec<String>,
     pub force_stop: bool,
+    pub backup_apk: bool,
+    pub backup_private_data: bool,
+    pub backup_external_data: bool,
+    pub backup_obb: bool,
+    pub backup_app_media: bool,
 }
 
 #[derive(Debug)]
@@ -138,31 +143,33 @@ impl<F: FnMut(Progress)> BackupSession<'_, F> {
         &mut self,
         package: &str,
         selected_storage: &[String],
-        force_stop: bool,
+        options: &BackupOptions,
     ) -> Result<()> {
         if !valid_package(package) {
             bail!("Invalid selected package: {package}");
         }
 
         ensure_not_cancelled(self.cancel)?;
-        if force_stop {
+        if options.force_stop {
             self.adb.force_stop(package)?;
             (self.notify)(Progress::Message(format!("Force-stopped {package}")));
         }
 
-        let apk_paths = self.adb.apk_paths(package)?;
-        for (index, remote_path) in apk_paths.iter().enumerate() {
-            ensure_not_cancelled(self.cancel)?;
-            let original = remote_path.rsplit('/').next().context("Invalid APK path")?;
-            let filename = format!("{index:02}-{}", sanitize_filename(original));
-            let target = self
-                .root
-                .join("apps")
-                .join(package)
-                .join("apk")
-                .join(filename);
-            let command = format!("cat {}", shell_quote(remote_path));
-            self.copy_artifact(remote_path, &target, ArtifactKind::Apk, &command)?;
+        if options.backup_apk {
+            let apk_paths = self.adb.apk_paths(package)?;
+            for (index, remote_path) in apk_paths.iter().enumerate() {
+                ensure_not_cancelled(self.cancel)?;
+                let original = remote_path.rsplit('/').next().context("Invalid APK path")?;
+                let filename = format!("{index:02}-{}", sanitize_filename(original));
+                let target = self
+                    .root
+                    .join("apps")
+                    .join(package)
+                    .join("apk")
+                    .join(filename);
+                let command = format!("cat {}", shell_quote(remote_path));
+                self.copy_artifact(remote_path, &target, ArtifactKind::Apk, &command)?;
+            }
         }
 
         for (parent, archive, category) in [
@@ -184,7 +191,16 @@ impl<F: FnMut(Progress)> BackupSession<'_, F> {
                 Some("Android/media"),
             ),
         ] {
-            if category.is_some_and(|name| selected_storage.iter().any(|item| item == name)) {
+            let component_enabled = match archive {
+                "credential_encrypted.tar" | "device_encrypted.tar" => options.backup_private_data,
+                "external_data.tar" => options.backup_external_data,
+                "obb.tar" => options.backup_obb,
+                "media.tar" => options.backup_app_media,
+                _ => false,
+            };
+            if !component_enabled
+                || category.is_some_and(|name| selected_storage.iter().any(|item| item == name))
+            {
                 continue;
             }
 
@@ -206,12 +222,20 @@ pub fn run_backup(
     if options.packages.is_empty() && options.storage.is_empty() {
         bail!("Select at least one app or storage category");
     }
+    let app_component_selected = options.backup_apk
+        || options.backup_private_data
+        || options.backup_external_data
+        || options.backup_obb
+        || options.backup_app_media;
+    if !options.packages.is_empty() && !app_component_selected && options.storage.is_empty() {
+        bail!("Select at least one app backup component");
+    }
     for category in &options.storage {
         if !STORAGE_CATEGORIES.iter().any(|(path, _)| path == category) {
             bail!("Unknown storage category: {category}");
         }
     }
-    let adb = Adb::new(options.adb_path, &options.device)?;
+    let adb = Adb::new(options.adb_path.clone(), &options.device)?;
     adb.check_ready()?;
 
     fs::create_dir_all(&options.destination)?;
@@ -246,7 +270,7 @@ pub fn run_backup(
 
         for package in &options.packages {
             session
-                .backup_package(package, &options.storage, options.force_stop)
+                .backup_package(package, &options.storage, &options)
                 .with_context(|| format!("Could not back up {package}"))?;
         }
 

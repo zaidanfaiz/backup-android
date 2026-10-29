@@ -2,7 +2,7 @@
 
 A Windows-native Android backup utility using **WinUI 3** for the interface and **Rust** for the backup engine.
 
-**v0.3.3 preview**: Fixes a Windows App startup crash (COMException 0x8000FFFF) caused by reading `Application.Resources` too early in the WinUI 3 constructor. Keeps the v0.3.2 default XAML control-resource registration and organized folders.
+**v0.4.0 preview**: Reworked WinUI navigation with explicit vertical scrolling and independent component selection for rooted Android apps. The WinUI frontend and native Rust backup engine remain separate.
 
 ## Features
 
@@ -100,6 +100,35 @@ Open **Ransomware scan** in WinUI 3 after connecting the device and verifying an
 - **Not an antivirus engine.** An unmatched file can still be malicious, and a match may be harmless. A scan without findings is not proof that the device is safe.
 - No automatic deletion, quarantine, network uploads, or claiming a malware family from filenames.
 - A separate Google Play Protect scan remains useful for detecting potentially harmful Android apps.
+
+## App data backup components
+
+The Windows Apps page now allows selecting the installed packages and choosing
+which backup components to include, similar in concept to Swift Backup, Neo Backup,
+and Android-DataBackup. This is an original implementation; it does not copy
+Swift Backup's proprietary source or interface.
+
+- **APK + splits**: base APK and configuration split APKs resolved from `pm path`.
+- **Private app data (CE + DE)**: `/data/user/0/<package>` and
+  `/data/user_de/0/<package>`, when the temporary root shell can read them.
+- **External app data**: `/storage/emulated/0/Android/data/<package>`.
+- **OBB / expansion**: `/storage/emulated/0/Android/obb/<package>`.
+- **App media**: `/storage/emulated/0/Android/media/<package>`.
+- **Shared folders**: DCIM, Pictures, Movies, Download, Documents and other
+  explicitly selected locations on the Photos & Files page.
+
+Selected apps survive filtering by package name. Each component is streamed to
+a per-package directory and recorded in `manifest.json` with a SHA-256 digest.
+Files are not automatically restored. Android Keystore and unavailable encrypted
+data may prevent complete account/session migration.
+
+Scrolling is enabled explicitly on all five navigation pages. UI events are
+marshalled to the WinUI UI thread, Android device changes invalidate stale root
+status, and the Windows build runs a GUI navigation and scrolling smoke test.
+
+The current release does **not** back up SMS, call history, or Wi-Fi
+configurations and does not provide the full Swift Backup feature set. It
+requires actual root on the Android device to read private data.
 
 ## Security and limits
 
