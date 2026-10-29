@@ -48,7 +48,9 @@ fn adb_command(binary: &Path, serial: Option<&str>) -> Command {
 }
 
 fn successful_text(mut cmd: Command) -> Result<String> {
-    let output = cmd.output().context("Failed to execute adb. Check the adb path.")?;
+    let output = cmd
+        .output()
+        .context("Failed to execute adb. Check the adb path.")?;
     if !output.status.success() {
         bail!(
             "adb exited with {}: {}",

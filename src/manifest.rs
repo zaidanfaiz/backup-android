@@ -103,8 +103,8 @@ fn digest_file(path: &Path) -> Result<(u64, String)> {
 }
 
 pub fn verify_backup(directory: &Path) -> Result<usize> {
-    let bytes = fs::read(directory.join("manifest.json"))
-        .context("Unable to read manifest.json")?;
+    let bytes =
+        fs::read(directory.join("manifest.json")).context("Unable to read manifest.json")?;
     let manifest: Manifest = serde_json::from_slice(&bytes)?;
     if manifest.format_version != FORMAT_VERSION {
         bail!("Unsupported backup format version");
@@ -122,8 +122,8 @@ pub fn verify_backup(directory: &Path) -> Result<usize> {
             bail!("Manifest contains an unsafe relative path");
         }
         let target = directory.join(&relative);
-        let (actual_size, actual_sha) = digest_file(&target)
-            .with_context(|| format!("Unable to read {}", artifact.path))?;
+        let (actual_size, actual_sha) =
+            digest_file(&target).with_context(|| format!("Unable to read {}", artifact.path))?;
         if actual_size != artifact.bytes || actual_sha != artifact.sha256 {
             bail!("Backup verification failed: {}", artifact.path);
         }

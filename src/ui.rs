@@ -108,8 +108,7 @@ impl BackupApp {
                     self.log(format!("Found {} authorized device(s)", devices.len()));
                     self.devices = devices;
                     if !self.devices.contains(&self.selected_serial) {
-                        self.selected_serial =
-                            self.devices.first().cloned().unwrap_or_default();
+                        self.selected_serial = self.devices.first().cloned().unwrap_or_default();
                     }
                     self.device = None;
                     self.packages.clear();
@@ -175,8 +174,8 @@ impl BackupApp {
         let adb_path = self.adb_path.clone();
         let tx = self.tx.clone();
         thread::spawn(move || {
-            let result = adb::list_devices(Path::new(&adb_path))
-                .map_err(|error| format!("{error:#}"));
+            let result =
+                adb::list_devices(Path::new(&adb_path)).map_err(|error| format!("{error:#}"));
             let _ = tx.send(Event::Devices(result));
         });
     }
@@ -313,7 +312,10 @@ impl BackupApp {
             self.inspect_device();
         }
         if let Some(device) = &self.device {
-            ui.label(format!("{} | Android {}", device.model, device.android_version));
+            ui.label(format!(
+                "{} | Android {}",
+                device.model, device.android_version
+            ));
             if let Some(root) = device.root {
                 ui.colored_label(
                     egui::Color32::from_rgb(86, 186, 126),
@@ -363,7 +365,10 @@ impl BackupApp {
 
         ui.add_space(8.0);
         let allowed = !self.busy
-            && self.device.as_ref().is_some_and(|device| device.root.is_some());
+            && self
+                .device
+                .as_ref()
+                .is_some_and(|device| device.root.is_some());
         if ui
             .add_enabled(allowed, egui::Button::new("Start backup"))
             .clicked()

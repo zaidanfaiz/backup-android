@@ -239,7 +239,9 @@ pub fn run_backup(
     fs::create_dir_all(&options.destination)?;
     let safe_serial = sanitize_filename(&options.device.serial);
     let date = Local::now().format("%Y%m%d-%H%M%S-%3f");
-    let folder = options.destination.join(format!("android-{safe_serial}-{date}"));
+    let folder = options
+        .destination
+        .join(format!("android-{safe_serial}-{date}"));
     fs::create_dir(&folder).context("Unable to create an empty backup directory")?;
 
     #[cfg(unix)]
