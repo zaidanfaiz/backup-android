@@ -72,150 +72,123 @@ fn ensure_not_cancelled(cancel: &AtomicBool) -> Result<()> {
     Ok(())
 }
 
-fn copy_artifact(
-    adb: &Adb,
-    root: &Path,
-    manifest: &mut Manifest,
-    source: &str,
-    target: &Path,
-    kind: ArtifactKind,
-    command: &str,
-    cancel: &AtomicBool,
-    notify: &mut impl FnMut(Progress),
-) -> Result<()> {
-    let display = relative_artifact_path(root, target)?;
-    notify(Progress::Message(format!("Backing up {source}")));
-    let mut next_report = 4 * 1024 * 1024;
-    let (bytes, sha256) = adb.stream_to_file(command, target, cancel, |current| {
-        if current >= next_report {
-            notify(Progress::Transferred {
-                file: display.clone(),
-                bytes: current,
-            });
-            next_report = current + 4 * 1024 * 1024;
-        }
-    })?;
-    manifest.artifacts.push(Artifact {
-        kind,
-        source: source.to_owned(),
-        path: display,
-        bytes,
-        sha256,
-    });
-    manifest.save(root)?;
-    notify(Progress::Message(format!(
-        "Saved {source} ({:.1} MiB)",
-        bytes as f64 / (1024.0 * 1024.0)
-    )));
-    Ok(())
+/// Shared dependencies for one backup session. Keeping them together avoids
+/// passing root paths, progress handlers and cancellation state through each step.
+struct BackupSession<'a, F: FnMut(Progress)> {
+    adb: &'a Adb,
+    root: &'a Path,
+    manifest: &'a mut Manifest,
+    cancel: &'a AtomicBool,
+    notify: &'a mut F,
 }
 
-fn copy_directory_if_present(
-    adb: &Adb,
-    backup_root: &Path,
-    manifest: &mut Manifest,
-    source: &str,
-    target: &Path,
-    kind: ArtifactKind,
-    cancel: &AtomicBool,
-    notify: &mut impl FnMut(Progress),
-) -> Result<()> {
-    ensure_not_cancelled(cancel)?;
-    if !adb.directory_exists(source)? {
-        notify(Progress::Message(format!("Not present, skipped: {source}")));
-        return Ok(());
-    }
-    let command = remote_directory_command(source)?;
-    copy_artifact(
-        adb,
-        backup_root,
-        manifest,
-        source,
-        target,
-        kind,
-        &command,
-        cancel,
-        notify,
-    )
-}
-
-fn backup_package(
-    adb: &Adb,
-    folder: &Path,
-    manifest: &mut Manifest,
-    package: &str,
-    selected_storage: &[String],
-    force_stop: bool,
-    cancel: &AtomicBool,
-    notify: &mut impl FnMut(Progress),
-) -> Result<()> {
-    if !valid_package(package) {
-        bail!("Invalid selected package: {package}");
+impl<F: FnMut(Progress)> BackupSession<'_, F> {
+    fn copy_artifact(
+        &mut self,
+        source: &str,
+        target: &Path,
+        kind: ArtifactKind,
+        command: &str,
+    ) -> Result<()> {
+        let display = relative_artifact_path(self.root, target)?;
+        (self.notify)(Progress::Message(format!("Backing up {source}")));
+        let mut next_report = 4 * 1024 * 1024;
+        let (bytes, sha256) = self
+            .adb
+            .stream_to_file(command, target, self.cancel, |current| {
+                if current >= next_report {
+                    (self.notify)(Progress::Transferred {
+                        file: display.clone(),
+                        bytes: current,
+                    });
+                    next_report = current + 4 * 1024 * 1024;
+                }
+            })?;
+        self.manifest.artifacts.push(Artifact {
+            kind,
+            source: source.to_owned(),
+            path: display,
+            bytes,
+            sha256,
+        });
+        self.manifest.save(self.root)?;
+        (self.notify)(Progress::Message(format!(
+            "Saved {source} ({:.1} MiB)",
+            bytes as f64 / (1024.0 * 1024.0)
+        )));
+        Ok(())
     }
 
-    ensure_not_cancelled(cancel)?;
-    if force_stop {
-        adb.force_stop(package)?;
-        notify(Progress::Message(format!("Force-stopped {package}")));
+    fn copy_directory_if_present(
+        &mut self,
+        source: &str,
+        target: &Path,
+        kind: ArtifactKind,
+    ) -> Result<()> {
+        ensure_not_cancelled(self.cancel)?;
+        if !self.adb.directory_exists(source)? {
+            (self.notify)(Progress::Message(format!("Not present, skipped: {source}")));
+            return Ok(());
+        }
+        let command = remote_directory_command(source)?;
+        self.copy_artifact(source, target, kind, &command)
     }
 
-    let apk_paths = adb.apk_paths(package)?;
-    for (index, remote_path) in apk_paths.iter().enumerate() {
-        ensure_not_cancelled(cancel)?;
-        let original = remote_path.rsplit('/').next().context("Invalid APK path")?;
-        let filename = format!("{index:02}-{}", sanitize_filename(original));
-        let target = folder.join("apps").join(package).join("apk").join(filename);
-        let command = format!("cat {}", shell_quote(remote_path));
-        copy_artifact(
-            adb,
-            folder,
-            manifest,
-            remote_path,
-            &target,
-            ArtifactKind::Apk,
-            &command,
-            cancel,
-            notify,
-        )?;
-    }
-
-    for (parent, archive, category) in [
-        ("/data/user/0", "credential_encrypted.tar", None),
-        ("/data/user_de/0", "device_encrypted.tar", None),
-        (
-            "/storage/emulated/0/Android/data",
-            "external_data.tar",
-            Some("Android/data"),
-        ),
-        (
-            "/storage/emulated/0/Android/obb",
-            "obb.tar",
-            Some("Android/obb"),
-        ),
-        (
-            "/storage/emulated/0/Android/media",
-            "media.tar",
-            Some("Android/media"),
-        ),
-    ] {
-        if category.is_some_and(|name| selected_storage.iter().any(|item| item == name)) {
-            continue;
+    fn backup_package(
+        &mut self,
+        package: &str,
+        selected_storage: &[String],
+        force_stop: bool,
+    ) -> Result<()> {
+        if !valid_package(package) {
+            bail!("Invalid selected package: {package}");
         }
 
-        let source = format!("{parent}/{package}");
-        let target = folder.join("apps").join(package).join(archive);
-        copy_directory_if_present(
-            adb,
-            folder,
-            manifest,
-            &source,
-            &target,
-            ArtifactKind::AppData,
-            cancel,
-            notify,
-        )?;
+        ensure_not_cancelled(self.cancel)?;
+        if force_stop {
+            self.adb.force_stop(package)?;
+            (self.notify)(Progress::Message(format!("Force-stopped {package}")));
+        }
+
+        let apk_paths = self.adb.apk_paths(package)?;
+        for (index, remote_path) in apk_paths.iter().enumerate() {
+            ensure_not_cancelled(self.cancel)?;
+            let original = remote_path.rsplit('/').next().context("Invalid APK path")?;
+            let filename = format!("{index:02}-{}", sanitize_filename(original));
+            let target = self.root.join("apps").join(package).join("apk").join(filename);
+            let command = format!("cat {}", shell_quote(remote_path));
+            self.copy_artifact(remote_path, &target, ArtifactKind::Apk, &command)?;
+        }
+
+        for (parent, archive, category) in [
+            ("/data/user/0", "credential_encrypted.tar", None),
+            ("/data/user_de/0", "device_encrypted.tar", None),
+            (
+                "/storage/emulated/0/Android/data",
+                "external_data.tar",
+                Some("Android/data"),
+            ),
+            (
+                "/storage/emulated/0/Android/obb",
+                "obb.tar",
+                Some("Android/obb"),
+            ),
+            (
+                "/storage/emulated/0/Android/media",
+                "media.tar",
+                Some("Android/media"),
+            ),
+        ] {
+            if category.is_some_and(|name| selected_storage.iter().any(|item| item == name)) {
+                continue;
+            }
+
+            let source = format!("{parent}/{package}");
+            let target = self.root.join("apps").join(package).join(archive);
+            self.copy_directory_if_present(&source, &target, ArtifactKind::AppData)?;
+        }
+        Ok(())
     }
-    Ok(())
 }
 
 /// A successful return means all selected streams have passed SHA-256 validation.
@@ -257,35 +230,32 @@ pub fn run_backup(
         options.device.model, options.device.android_version
     )));
 
-    for package in &options.packages {
-        backup_package(
-            &adb,
-            &folder,
-            &mut manifest,
-            package,
-            &options.storage,
-            options.force_stop,
+    {
+        let mut session = BackupSession {
+            adb: &adb,
+            root: &folder,
+            manifest: &mut manifest,
             cancel,
-            &mut notify,
-        )
-        .with_context(|| format!("Could not back up {package}"))?;
-    }
+            notify: &mut notify,
+        };
 
-    for category in &options.storage {
-        ensure_not_cancelled(cancel)?;
-        let source = format!("/storage/emulated/0/{category}");
-        let archive = format!("{}.tar", category.replace('/', "_"));
-        let target = folder.join("storage").join(archive);
-        copy_directory_if_present(
-            &adb,
-            &folder,
-            &mut manifest,
-            &source,
-            &target,
-            ArtifactKind::SharedStorage,
-            cancel,
-            &mut notify,
-        )?;
+        for package in &options.packages {
+            session
+                .backup_package(package, &options.storage, options.force_stop)
+                .with_context(|| format!("Could not back up {package}"))?;
+        }
+
+        for category in &options.storage {
+            ensure_not_cancelled(cancel)?;
+            let source = format!("/storage/emulated/0/{category}");
+            let archive = format!("{}.tar", category.replace('/', "_"));
+            let target = folder.join("storage").join(archive);
+            session.copy_directory_if_present(
+                &source,
+                &target,
+                ArtifactKind::SharedStorage,
+            )?;
+        }
     }
 
     if manifest.artifacts.is_empty() {
