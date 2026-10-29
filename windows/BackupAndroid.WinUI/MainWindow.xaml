@@ -81,7 +81,7 @@
                                 <TextBlock Text="Connect by USB, enable debugging and approve this computer on the phone."
                                            Opacity="0.7" TextWrapping="Wrap"/>
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <ComboBox x:Name="DeviceCombo" MinWidth="270"
+                                    <ComboBox x:Name="DeviceCombo" MinWidth="240" SelectionChanged="DeviceSelection_Changed"
                                               PlaceholderText="No authorized devices"/>
                                     <Button Content="Refresh devices" Click="Refresh_Click"/>
                                     <Button Content="Check root" Click="Inspect_Click"/>
