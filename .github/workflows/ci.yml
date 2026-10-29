@@ -33,13 +33,33 @@ jobs:
       - name: Test
         run: cargo test --all
 
-      - name: Build Windows developer executable
+      - name: Build native Windows release executable
         if: runner.os == 'Windows'
-        run: cargo build
-      - name: Upload Windows developer build
+        run: cargo build --release
+
+      - name: Verify Windows GUI subsystem and static VC runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path 'target/release/backup-android.exe').Path
+          $content = [System.IO.File]::ReadAllBytes($exe)
+          $pe = [BitConverter]::ToInt32($content, 0x3C)
+          $subsystem = [BitConverter]::ToUInt16($content, $pe + 24 + 68)
+          if ($subsystem -ne 2) { throw "Expected Windows GUI subsystem (2), got $subsystem" }
+          $ascii = [System.Text.Encoding]::ASCII.GetString($content)
+          if ($ascii -match '(?i)VCRUNTIME140(_1)?\\.DLL') {
+            throw "Possible dynamic VC runtime dependency found in exe"
+          }
+          Add-Type -AssemblyName System.Drawing
+          $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+          if ($null -eq $icon) { throw "Executable icon missing" }
+          $icon.Dispose()
+          Write-Host "Validated Windows GUI subsystem, no VC runtime string, executable icon."
+
+      - name: Upload Windows portable release
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: android-backup-windows-dev
-          path: target/debug/backup-android.exe
+          name: android-backup-windows-x64-portable
+          path: target/release/backup-android.exe
           if-no-files-found: error
