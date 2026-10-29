@@ -249,6 +249,25 @@ pub fn restore_app(
             .with_context(|| format!("Unsafe archive: {}", archive.source.path))?;
     }
 
+    // Reject pre-existing symlinks in target trees. A benign-looking TAR
+    // entry can escape its package through a symlink already on the device.
+    // Refusing such targets is safer than following them during root extraction.
+    for archive in &archives {
+        let target = format!("{}/{}", archive.parent, package);
+        if archive.is_private && !adb.directory_exists(&target)? {
+            bail!("Required private app directory does not exist: {target}");
+        }
+        if adb.directory_exists(&target)? {
+            let probe = format!(
+                "find {} -type l -print | head -n 1",
+                shell_quote(&target)
+            );
+            if !adb.root_text(&probe)?.trim().is_empty() {
+                bail!("Restore target contains symlinks; refusing unsafe root extraction");
+            }
+        }
+    }
+
     // Snapshot first, and abort if it fails. This snapshot remains on the host
     // even if the later restore fails partway through.
     progress(Progress::Message(
