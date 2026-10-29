@@ -67,11 +67,18 @@ fn parent_for_source(package: &str, source: &str) -> Option<(&'static str, bool)
         ("/storage/emulated/0/Android/obb", false),
         ("/storage/emulated/0/Android/media", false),
     ];
-    expected.into_iter().find(|(parent, _)| source == format!("{parent}/{package}"))
+    expected
+        .into_iter()
+        .find(|(parent, _)| source == format!("{parent}/{package}"))
 }
 
 fn app_archives<'a>(manifest: &'a Manifest, package: &str) -> Result<Vec<DataArchive<'a>>> {
-    if !valid_package(package) || !manifest.selected_packages.iter().any(|name| name == package) {
+    if !valid_package(package)
+        || !manifest
+            .selected_packages
+            .iter()
+            .any(|name| name == package)
+    {
         bail!("This application was not selected in the backup");
     }
     let mut archives = Vec::new();
@@ -86,7 +93,10 @@ fn app_archives<'a>(manifest: &'a Manifest, package: &str) -> Result<Vec<DataArc
         if !artifact.path.replace('\\', "/").starts_with(&expected_dir) {
             bail!("App archive does not live under the selected package directory");
         }
-        if archives.iter().any(|item: &DataArchive<'_>| item.parent == parent) {
+        if archives
+            .iter()
+            .any(|item: &DataArchive<'_>| item.parent == parent)
+        {
             bail!("Backup contains duplicate data archives for {package}");
         }
         archives.push(DataArchive {
@@ -173,12 +183,12 @@ pub fn plan(folder: &Path, device: &Device) -> Result<RestorePlan> {
 }
 
 fn original_owner(adb: &Adb, directory: &str) -> Result<String> {
-    let output = adb.root_text(&format!(
-        "stat -c '%u:%g' {}",
-        shell_quote(directory)
-    ))?;
+    let output = adb.root_text(&format!("stat -c '%u:%g' {}", shell_quote(directory)))?;
     let owner = output.trim();
-    if owner.is_empty() || !owner.contains(':') || !owner.bytes().all(|ch| ch.is_ascii_digit() || ch == b':') {
+    if owner.is_empty()
+        || !owner.contains(':')
+        || !owner.bytes().all(|ch| ch.is_ascii_digit() || ch == b':')
+    {
         bail!("Cannot determine the installed application's UID:GID");
     }
     Ok(owner.to_owned())
@@ -270,13 +280,17 @@ pub fn restore_app(
 
     for (index, archive) in archives.iter().enumerate() {
         if cancel.load(std::sync::atomic::Ordering::Relaxed) {
-            bail!("Restore interrupted; pre-restore backup preserved at {}", safety.display());
+            bail!(
+                "Restore interrupted; pre-restore backup preserved at {}",
+                safety.display()
+            );
         }
         let device_path = format!("{}/{}", archive.parent, package);
         let owner = if archive.is_private {
-            Some(original_owner(&adb, &device_path).with_context(|| {
-                format!("Cannot identify owner of {device_path}")
-            })?)
+            Some(
+                original_owner(&adb, &device_path)
+                    .with_context(|| format!("Cannot identify owner of {device_path}"))?,
+            )
         } else {
             None
         };
@@ -302,7 +316,8 @@ pub fn restore_app(
                 shell_quote(&remote),
                 shell_quote(archive.parent)
             );
-            adb.root_text(&script).context("Android tar extraction failed")?;
+            adb.root_text(&script)
+                .context("Android tar extraction failed")?;
             if let Some(owner) = owner {
                 let fix = format!(
                     "chown -R {} {} && restorecon -RF {}",
@@ -364,7 +379,9 @@ mod tests {
             header.set_size(data.len() as u64);
             header.set_mode(0o600);
             header.set_cksum();
-            builder.append_data(&mut header, "com.other.app/prefs.xml", &data[..]).unwrap();
+            builder
+                .append_data(&mut header, "com.other.app/prefs.xml", &data[..])
+                .unwrap();
             builder.finish().unwrap();
         }
         let file = std::env::temp_dir().join(format!(
