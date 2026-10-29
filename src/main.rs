@@ -29,6 +29,20 @@ struct Request {
     storage: Vec<String>,
     #[serde(default)]
     force_stop: bool,
+    #[serde(default = "enabled_by_default")]
+    backup_apk: bool,
+    #[serde(default = "enabled_by_default")]
+    backup_private_data: bool,
+    #[serde(default = "enabled_by_default")]
+    backup_external_data: bool,
+    #[serde(default = "enabled_by_default")]
+    backup_obb: bool,
+    #[serde(default = "enabled_by_default")]
+    backup_app_media: bool,
+}
+
+fn enabled_by_default() -> bool {
+    true
 }
 
 fn default_adb() -> PathBuf {
@@ -82,6 +96,11 @@ fn execute(request: Request) -> Result<()> {
                 packages: request.packages,
                 storage: request.storage,
                 force_stop: request.force_stop,
+                backup_apk: request.backup_apk,
+                backup_private_data: request.backup_private_data,
+                backup_external_data: request.backup_external_data,
+                backup_obb: request.backup_obb,
+                backup_app_media: request.backup_app_media,
             };
             let path = backup::run_backup(options, &cancel, |progress| match progress {
                 backup::Progress::Message(message) => {
@@ -144,5 +163,12 @@ mod tests {
         .unwrap();
         assert_eq!(request.action, "backup");
         assert_eq!(request.packages, vec!["com.example.app"]);
+        assert!(request.backup_private_data);
+        assert!(request.backup_apk);
+        let selective: Request = serde_json::from_str(
+            r#"{"action":"backup","backup_apk":false,"backup_private_data":true}"#,
+        ).unwrap();
+        assert!(!selective.backup_apk);
+        assert!(selective.backup_private_data);
     }
 }
