@@ -15,7 +15,7 @@ mod windows_launcher {
         Foundation::{CloseHandle, GetLastError, WAIT_OBJECT_0},
         System::Threading::{GetExitCodeProcess, WaitForSingleObject},
         UI::{
-            Shell::{ShellExecuteExW, SHELLEXECUTEINFOW, SEE_MASK_NOCLOSEPROCESS},
+            Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW},
             WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK},
         },
     };
@@ -46,7 +46,12 @@ mod windows_launcher {
         let title = wide(OsStr::new("Android Backup - Startup error"));
         let body = wide(OsStr::new(message));
         unsafe {
-            MessageBoxW(ptr::null_mut(), body.as_ptr(), title.as_ptr(), MB_OK | MB_ICONERROR);
+            MessageBoxW(
+                ptr::null_mut(),
+                body.as_ptr(),
+                title.as_ptr(),
+                MB_OK | MB_ICONERROR,
+            );
         }
     }
 
@@ -64,7 +69,12 @@ mod windows_launcher {
         let missing: Vec<_> = required
             .iter()
             .filter(|file| !file.is_file())
-            .map(|file| file.strip_prefix(folder).unwrap_or(file).display().to_string())
+            .map(|file| {
+                file.strip_prefix(folder)
+                    .unwrap_or(file)
+                    .display()
+                    .to_string()
+            })
             .collect();
         if !missing.is_empty() {
             return Err(format!(
