@@ -47,10 +47,27 @@ public partial class App : Application
             if (Environment.GetCommandLineArgs().Contains("--ui-smoke", StringComparer.Ordinal))
             {
                 StartupDiagnostics.Write("Running interactive WinUI smoke test.");
-                if (_window is MainWindow mainWindow)
-                    mainWindow.RunUiSmokeCheck();
-                StartupDiagnostics.Write("UI smoke complete.");
-                Exit();
+                // Allow one render cycle before the UI test and keep the window
+                // alive briefly after switching pages. This exposes deferred
+                // WinUI/XAML exceptions that an immediate Exit() would miss.
+                _window.DispatcherQueue.TryEnqueue(async () =>
+                {
+                    try
+                    {
+                        if (_window is MainWindow mainWindow)
+                            mainWindow.RunUiSmokeCheck();
+                        await Task.Delay(1500);
+                        StartupDiagnostics.Write("UI smoke complete after render.");
+                    }
+                    catch (Exception error)
+                    {
+                        StartupDiagnostics.Report("UI smoke interaction", error);
+                    }
+                    finally
+                    {
+                        Exit();
+                    }
+                });
             }
         }
         catch (Exception error)

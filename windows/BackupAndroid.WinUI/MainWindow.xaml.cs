@@ -129,8 +129,19 @@ public sealed partial class MainWindow : Window
         if (ApplicationChoices.Items.Count != 3)
             throw new InvalidOperationException("App filtering could not be restored");
 
+        // Validate that backup presets actually change the selected components.
+        BackupPreset.SelectedIndex = 2;
+        if (PrivateDataCheck.IsChecked == true || AppExternalCheck.IsChecked == true)
+            throw new InvalidOperationException("APK-only preset unexpectedly includes private app data");
+        BackupPreset.SelectedIndex = 0;
+        if (ApkCheck.IsChecked != true || PrivateDataCheck.IsChecked != true
+            || AppExternalCheck.IsChecked != true || AppObbCheck.IsChecked != true
+            || AppMediaCheck.IsChecked != true)
+            throw new InvalidOperationException("Complete app backup preset did not enable all components");
+
         Shell.SelectedItem = Shell.MenuItems[0];
         StartupDiagnostics.Write("UI smoke: navigation, five scroll viewers and app filtering passed.");
+        StartupDiagnostics.Write("UI smoke: app data backup presets passed.");
     }
 
     private void OnNavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -139,6 +150,7 @@ public sealed partial class MainWindow : Window
         if (OverviewPage is null || ApplicationsPage is null || StoragePage is null
             || SecurityPage is null || SetupPage is null) return;
         var tag = (args.SelectedItem as NavigationViewItem)?.Tag?.ToString() ?? "overview";
+        StartupDiagnostics.Write($"UI navigation: {tag}");
         OverviewPage.Visibility = tag == "overview" ? Visibility.Visible : Visibility.Collapsed;
         ApplicationsPage.Visibility = tag == "apps" ? Visibility.Visible : Visibility.Collapsed;
         StoragePage.Visibility = tag == "storage" ? Visibility.Visible : Visibility.Collapsed;
@@ -187,6 +199,39 @@ public sealed partial class MainWindow : Window
         finally
         {
             _updatingAppList = false;
+        }
+    }
+
+    private void BackupPreset_Changed(object sender, SelectionChangedEventArgs args)
+    {
+        // XAML can fire SelectionChanged before all controls are initialized.
+        if (ApkCheck is null || PrivateDataCheck is null || AppExternalCheck is null
+            || AppObbCheck is null || AppMediaCheck is null)
+            return;
+
+        switch (BackupPreset.SelectedIndex)
+        {
+            case 0: // Complete
+                ApkCheck.IsChecked = true;
+                PrivateDataCheck.IsChecked = true;
+                AppExternalCheck.IsChecked = true;
+                AppObbCheck.IsChecked = true;
+                AppMediaCheck.IsChecked = true;
+                break;
+            case 1: // App + private data
+                ApkCheck.IsChecked = true;
+                PrivateDataCheck.IsChecked = true;
+                AppExternalCheck.IsChecked = false;
+                AppObbCheck.IsChecked = false;
+                AppMediaCheck.IsChecked = false;
+                break;
+            case 2: // APK only
+                ApkCheck.IsChecked = true;
+                PrivateDataCheck.IsChecked = false;
+                AppExternalCheck.IsChecked = false;
+                AppObbCheck.IsChecked = false;
+                AppMediaCheck.IsChecked = false;
+                break;
         }
     }
 
@@ -381,6 +426,7 @@ public sealed partial class MainWindow : Window
 
     private async void Backup_Click(object sender, RoutedEventArgs e)
     {
+        StartupDiagnostics.Write($"Backup request: selected apps={_selectedApps.Count}; root verified={_rootVerified}");
         if (!_rootVerified || string.IsNullOrWhiteSpace(SelectedDevice))
         {
             Log("Backup blocked. Connect and verify an active root shell first.");
