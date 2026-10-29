@@ -2,7 +2,7 @@
 
 A Windows-native Android backup utility using **WinUI 3** for the interface and **Rust** for the backup engine.
 
-**v0.4.0 preview**: Reworked WinUI navigation with explicit vertical scrolling and independent component selection for rooted Android apps. The WinUI frontend and native Rust backup engine remain separate.
+**v0.3.4 preview**: Reworked WinUI navigation with explicit vertical scrolling and independent component selection for rooted Android apps. The WinUI frontend and native Rust backup engine remain separate.
 
 ## Features
 
@@ -88,6 +88,31 @@ The phone's root shell must be obtained separately.
 
 The UI talks to the Rust engine using one JSON request on stdin and JSON Lines
 status/progress events on stdout. Neither the UI nor the backend opens a visible CMD window.
+
+## App data backup workflow
+
+The **Applications** page supports three presets:
+
+- **Complete app backup:** APK and split APKs, credential-encrypted and device-encrypted private data, per-app Android/data, OBB and Android/media directories when accessible.
+- **App and private data:** APK plus internal private data.
+- **APK only:** APK and split APK files without private data.
+
+Every selected package is stored separately beneath `apps/<package-name>/` in the backup session.
+Private app data is archived as `credential_encrypted.tar` and `device_encrypted.tar`;
+per-app external data is archived separately. Manifests include SHA-256 hashes
+for all completed artifacts. A rooted and *unlocked* Android device is required
+for credential-encrypted user data. App data is not the same as media folders.
+
+**This release is backup-only.** A restore engine which safely handles UID/GID,
+app signatures, SELinux labels, CE/DE encryption and Android Keystore data is
+not implemented. Do not assume a copied private-data archive can be restored
+on a different Android version or phone.
+
+For behavioral reference, Swift Backup is a proprietary Android backup product;
+the public GitHub projects [Neo Backup](https://github.com/NeoApplications/Neo-Backup)
+and [DataBackup](https://github.com/XayahSuSuSu/Android-DataBackup) provide
+open-source root-aware app backup approaches. Their code is not copied into
+this repository and their respective licenses must be respected.
 
 ## Ransomware indicator scan
 
