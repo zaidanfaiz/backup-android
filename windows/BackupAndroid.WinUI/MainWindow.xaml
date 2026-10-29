@@ -158,7 +158,7 @@
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
                                 <TextBlock Text="Windows USB driver" FontSize="19" FontWeight="SemiBold"/>
-                                <TextBlock Text="Driver packages are device-specific. Download the driver from the correct manufacturer, then install its INF after confirmation."
+                                <TextBlock Text="Manage Android USB connectivity and drivers."
                                            Opacity="0.7" TextWrapping="Wrap"/>
                                 <StackPanel Orientation="Horizontal" Spacing="10">
                                     <Button Content="Find OEM driver" Click="OpenOem_Click"/>
