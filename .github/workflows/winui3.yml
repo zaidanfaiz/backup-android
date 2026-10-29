@@ -24,6 +24,17 @@ jobs:
       - name: Build Rust engine and native Windows launcher
         run: cargo build --release --bin backup-android-core --bin AndroidBackup
 
+      - name: Regression check for required WinUI control resources
+        shell: pwsh
+        run: |
+          [xml]$xaml = Get-Content windows/BackupAndroid.WinUI/App.xaml -Raw
+          $dictionaries = $xaml.SelectNodes("//*[local-name()='ResourceDictionary.MergedDictionaries']/*")
+          if ($null -eq $dictionaries -or $dictionaries.Count -lt 1 -or
+              $dictionaries.Item(0).LocalName -ne 'XamlControlsResources') {
+            throw "WinUI default styles must be the first merged App.xaml dictionary"
+          }
+          Write-Host "XamlControlsResources is registered before app-specific resources"
+
       - name: Publish WinUI 3 into private application directory
         shell: pwsh
         run: |
@@ -38,12 +49,18 @@ jobs:
           Copy-Item target/release/AndroidBackup.exe "$out/AndroidBackup.exe"
           Copy-Item target/release/backup-android-core.exe "$out/App/backend/backup-android-core.exe"
           Copy-Item docs/WINDOWS_INSTALL.txt "$out/README.txt"
+          foreach ($folder in @('Language', 'Config', 'Logs')) {
+            Copy-Item -Path $folder -Destination "$out/$folder" -Recurse
+          }
           if (-not (Test-Path "$out/AndroidBackup.exe")) { throw "Native launcher missing" }
           if (-not (Test-Path "$out/App/AndroidBackup.exe")) { throw "WinUI executable missing" }
           if (-not (Test-Path "$out/App/AndroidBackup.pri")) { throw "WinUI resource index missing" }
           if (-not (Test-Path "$out/App/Microsoft.ui.xaml.dll")) { throw "WinUI runtime DLL missing" }
           if (-not (Test-Path "$out/App/Assets/icon.ico")) { throw "App icon missing" }
           if (-not (Test-Path "$out/App/backend/backup-android-core.exe")) { throw "Rust engine missing" }
+          foreach ($item in @('Language/en-US/README.txt', 'Language/id-ID/README.txt', 'Config/README.txt', 'Logs/README.txt')) {
+            if (-not (Test-Path (Join-Path $out $item))) { throw "Missing distribution folder asset: $item" }
+          }
           $manifest = Get-Content windows/BackupAndroid.WinUI/app.manifest -Raw
           if ($manifest -notmatch 'requestedExecutionLevel level="requireAdministrator"') { throw "UAC declaration missing" }
           $topFiles = @(Get-ChildItem -LiteralPath $out -File)
@@ -63,6 +80,9 @@ jobs:
           $log = Join-Path $env:LOCALAPPDATA "AndroidBackup/Logs/launcher.log"
           if (-not (Test-Path $log)) { throw "Expected launcher diagnostic log missing" }
           Get-Content $log -Tail 5
+          $portableLog = "$out/Logs/launcher.log"
+          if (-not (Test-Path $portableLog)) { throw "Expected portable log mirror missing" }
+          Get-Content $portableLog -Tail 5
 
       - name: Upload complete portable application
         uses: actions/upload-artifact@v4

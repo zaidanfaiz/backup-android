@@ -16,12 +16,23 @@ AndroidBackup/
   README.txt
   App/
     AndroidBackup.exe     WinUI 3 application (requires UAC)
-    *.dll, *.pri          WinUI 3 / .NET runtime (must remain alongside the app)
+    *.dll, *.pri          WinUI 3 / .NET runtime (must remain beside internal EXE)
     Assets/               Icons and images
     backend/              Rust backup engine
-    en-US/, ...           Windows language resources
+    en-US/, ...           WinUI/Windows satellite resources
+  Config/
+    README.txt            Describes platform config and future user settings
+  Language/
+    en-US/                English user documentation
+    id-ID/                Indonesian user documentation
+  Logs/
+    launcher.log          Portable mirror of launcher diagnostics (on first run)
+    startup.log           Portable mirror of WinUI diagnostics (on first run)
+    README.txt            Fallback log locations
 
-Do not launch App/AndroidBackup.exe directly or move individual DLL files.
+Always use the top-level launcher. The internal App/AndroidBackup.exe is
+the actual WinUI executable, so native DLLs must remain in App/ next to it.
+Do not move those DLLs into a separate folder.
 Do not copy AndroidBackup.exe without its companion App folder.
 
 STARTUP TROUBLESHOOTING
@@ -31,6 +42,13 @@ When the application cannot be opened, look in:
   %LOCALAPPDATA%\AndroidBackup\Logs\startup.log
 
 The launcher verifies required files and reports early startup failures.
+On first launch, it also attempts to mirror logs into the portable Logs
+directory. In read-only installations, the %LOCALAPPDATA% copies remain the
+authoritative logs.
+
+A missing WinUI resource, such as TabViewButtonBackground, means the
+application theme dictionary could not load. Starting with v0.3.2,
+XamlControlsResources is explicitly registered in App.xaml.
 If startup.log is absent, failure may have happened before the WinUI managed
 entry point ran. Check Windows Event Viewer -> Windows Logs -> Application
 for events around the attempted launch. Capture the faulting module and
