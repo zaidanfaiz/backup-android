@@ -139,9 +139,16 @@ fn execute(request: Request) -> Result<()> {
                 bail!("Restoring private app data requires active root on Android");
             }
             let cancel = AtomicBool::new(false);
+            let options = restore::RestoreOptions {
+                folder,
+                package,
+                adb_binary: request.adb_path,
+                device,
+                safety_destination: safety,
+                confirm: request.confirm,
+            };
             let outcome = restore::restore_app(
-                &folder, &package, request.adb_path, &device, &safety,
-                request.confirm, &cancel, |progress| match progress {
+                options, &cancel, |progress| match progress {
                     backup::Progress::Message(message) => {
                         emit(json!({ "type": "progress", "message": message }));
                     }
