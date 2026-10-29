@@ -121,7 +121,6 @@ public sealed partial class MainWindow : Window
                 "security" => SecurityPage,
                 "restore" => RestorePage,
                 "setup" => SetupPage,
-                "restore" => RestorePage,
                 _ => throw new InvalidOperationException($"Unknown navigation destination: {tag}")
             };
             if (viewer.Visibility != Visibility.Visible || viewer.VerticalScrollMode != ScrollMode.Enabled)
