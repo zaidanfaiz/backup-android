@@ -147,7 +147,10 @@ jobs:
           if ($content -notmatch 'UI smoke: app data backup presets passed') {
             throw "WinUI app backup profile smoke marker missing"
           }
-          if ($content -match 'Unhandled XAML exception|WinUI window initialization:') {
+          if ($content -notmatch 'UI smoke complete after render') {
+            throw "WinUI smoke did not finish its deferred rendering window"
+          }
+          if ($content -match 'Unhandled XAML exception|UI smoke interaction|WinUI window initialization:') {
             throw "WinUI reported an XAML startup error during navigation smoke test"
           }
 
