@@ -4,6 +4,7 @@
 mod adb;
 mod backup;
 mod manifest;
+mod ransomware;
 
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
@@ -97,7 +98,19 @@ fn execute(request: Request) -> Result<()> {
             let count = manifest::verify_backup(&folder)?;
             emit(json!({ "type": "verified", "count": count }));
         }
-        _ => bail!("Unsupported action. Valid actions: devices, inspect, backup, verify"),
+        "scan_ransomware" => {
+            let serial = required(request.serial, "serial")?;
+            let device = adb::inspect(&request.adb_path, &serial)?;
+            if device.root.is_none() {
+                bail!("Ransomware scan requires an active temp root shell.");
+            }
+            let adb = adb::Adb::new(request.adb_path, &device)?;
+            let report = ransomware::scan_device(&adb, |message| {
+                emit(json!({ "type": "progress", "message": message }));
+            })?;
+            emit(json!({ "type": "ransomware_scan", "report": report }));
+        }
+        _ => bail!("Unsupported action. Valid actions: devices, inspect, backup, verify, scan_ransomware"),
     }
     Ok(())
 }
