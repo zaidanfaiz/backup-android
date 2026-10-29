@@ -12,8 +12,8 @@ mod windows_launcher {
         ptr,
     };
     use windows_sys::Win32::{
-        Foundation::{CloseHandle, GetLastError},
-        System::Threading::{GetExitCodeProcess, WaitForSingleObject, WAIT_OBJECT_0},
+        Foundation::{CloseHandle, GetLastError, WAIT_OBJECT_0},
+        System::Threading::{GetExitCodeProcess, WaitForSingleObject},
         UI::{
             Shell::{ShellExecuteExW, SHELLEXECUTEINFOW, SEE_MASK_NOCLOSEPROCESS},
             WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK},
