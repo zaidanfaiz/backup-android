@@ -47,7 +47,7 @@ jobs:
           $subsystem = [BitConverter]::ToUInt16($content, $pe + 24 + 68)
           if ($subsystem -ne 2) { throw "Expected Windows GUI subsystem (2), got $subsystem" }
           $ascii = [System.Text.Encoding]::ASCII.GetString($content)
-          if ($ascii -match '(?i)VCRUNTIME140(_1)?\\.DLL') {
+          if ($ascii -match '(?i)VCRUNTIME140') {
             throw "Possible dynamic VC runtime dependency found in exe"
           }
           Add-Type -AssemblyName System.Drawing
