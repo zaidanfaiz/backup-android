@@ -58,11 +58,26 @@
                               HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="0" MaxWidth="920" HorizontalAlignment="Stretch">
                         <TextBlock Text="Overview" FontSize="26" FontWeight="SemiBold"/>
-                        <TextBlock Text="Back up app data and personal files from an already-rooted Android device."
-                                   Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,24"/>
+                        <TextBlock Text="Back up applications, protected data and personal files from your Android."
+                                   Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,20"/>
+                        <Border Background="#1A4D46" CornerRadius="12" Padding="18" Margin="0,0,0,16">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Full app backup" FontSize="18" FontWeight="SemiBold" Foreground="#B5F5E7"/>
+                                    <TextBlock Text="APK + splits · private data · OBB · app media"
+                                               TextWrapping="Wrap" Foreground="#DCEFEB"/>
+                                    <TextBlock Text="Root required for protected app data" FontSize="12" Opacity="0.75"/>
+                                </StackPanel>
+                                <SymbolIcon Grid.Column="1" Symbol="Save" Foreground="#B5F5E7"/>
+                            </Grid>
+                        </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="14">
-                                <TextBlock Text="Device connection" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Device connection" FontSize="17" FontWeight="SemiBold"/>
                                 <TextBlock Text="Connect by USB, enable debugging and approve this computer on the phone."
                                            Opacity="0.7" TextWrapping="Wrap"/>
                                 <StackPanel Orientation="Horizontal" Spacing="10">
@@ -76,7 +91,7 @@
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="14">
-                                <TextBlock Text="Destination" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Backup location" FontSize="17" FontWeight="SemiBold"/>
                                 <Grid ColumnSpacing="10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -92,7 +107,7 @@
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
-                                <TextBlock Text="Activity" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Recent activity" FontSize="17" FontWeight="SemiBold"/>
                                 <ListView x:Name="ActivityList" Height="210" SelectionMode="None"/>
                             </StackPanel>
                         </Border>
@@ -104,7 +119,7 @@
                               HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
                     <StackPanel MaxWidth="920" Spacing="12">
                         <TextBlock Text="Applications" FontSize="26" FontWeight="SemiBold"/>
-                        <TextBlock Text="Select installed applications. Split APKs and available CE/DE app data are included."
+                        <TextBlock Text="Choose apps and the backup components to include. Root is required for private app data."
                                    Opacity="0.7" TextWrapping="Wrap"/>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
@@ -114,7 +129,26 @@
                                     <TextBlock x:Name="AppCount" Text="Inspect a device to load apps"
                                                VerticalAlignment="Center" Opacity="0.7"/>
                                 </StackPanel>
-                                <ListView x:Name="ApplicationChoices" Height="465" SelectionMode="Multiple"/>
+                                <TextBox x:Name="AppSearchBox" PlaceholderText="Search package name"
+                                         TextChanged="AppSearch_TextChanged"/>
+                                <ListView x:Name="ApplicationChoices" Height="300" SelectionMode="Multiple"
+                                          SelectionChanged="Applications_SelectionChanged"/>
+                                <TextBlock Text="Selected apps are preserved when filtering this list."
+                                           FontSize="12" Opacity="0.72" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="App backup components" FontSize="18" FontWeight="SemiBold"/>
+                                <TextBlock Text="Choose what to capture for each selected app."
+                                           Opacity="0.7" TextWrapping="Wrap"/>
+                                <CheckBox x:Name="ApkCheck" Content="APK + split APKs" IsChecked="True"/>
+                                <CheckBox x:Name="PrivateDataCheck" Content="Private app data (CE / DE)" IsChecked="True"/>
+                                <CheckBox x:Name="AppExternalCheck" Content="External app data (Android/data)" IsChecked="True"/>
+                                <CheckBox x:Name="AppObbCheck" Content="Expansion files (OBB)" IsChecked="True"/>
+                                <CheckBox x:Name="AppMediaCheck" Content="Per-app media (Android/media)" IsChecked="True"/>
+                                <TextBlock Text="Some encrypted files and hardware-bound account secrets cannot be migrated."
+                                           FontSize="12" Opacity="0.7" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
