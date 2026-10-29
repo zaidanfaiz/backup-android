@@ -41,6 +41,24 @@ mod windows_launcher {
         if let Ok(mut file) = OpenOptions::new().append(true).create(true).open(path) {
             let _ = writeln!(file, "{message}");
         }
+
+        // Mirror portable logs for convenient inspection; the per-user log
+        // above remains the canonical fallback when the folder is read-only.
+        if let Some(folder) = std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(Path::to_path_buf))
+        {
+            let portable = folder.join("Logs");
+            if portable.is_dir() {
+                if let Ok(mut file) = OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(portable.join("launcher.log"))
+                {
+                    let _ = writeln!(file, "{message}");
+                }
+            }
+        }
     }
 
     fn error(message: &str) {
