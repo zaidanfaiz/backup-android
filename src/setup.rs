@@ -5,8 +5,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-pub const PLATFORM_TOOLS_URL: &str =
-    "https://developer.android.com/tools/releases/platform-tools";
+pub const PLATFORM_TOOLS_URL: &str = "https://developer.android.com/tools/releases/platform-tools";
 pub const GOOGLE_DRIVER_URL: &str = "https://developer.android.com/studio/run/win-usb";
 pub const OEM_DRIVERS_URL: &str = "https://developer.android.com/studio/run/oem-usb";
 pub const VC_RUNTIME_URL: &str = "https://aka.ms/vc14/vc_redist.x64.exe";
@@ -85,7 +84,10 @@ fn unpack_platform_tools(zip_path: &Path, directory: &Path) -> Result<()> {
         {
             bail!("Unsafe path inside ZIP");
         }
-        if entry.unix_mode().is_some_and(|mode| mode & 0o170000 == 0o120000) {
+        if entry
+            .unix_mode()
+            .is_some_and(|mode| mode & 0o170000 == 0o120000)
+        {
             bail!("Symbolic links are not supported in Platform Tools archives");
         }
 
@@ -123,7 +125,11 @@ pub fn install_driver_inf(inf: &Path) -> Result<()> {
     use std::{ffi::OsStr, os::windows::ffi::OsStrExt, ptr};
     use windows_sys::Win32::UI::Shell::ShellExecuteW;
 
-    if !inf.is_file() || !inf.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("inf")) {
+    if !inf.is_file()
+        || !inf
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("inf"))
+    {
         bail!("Select an existing .inf driver file");
     }
     let absolute = inf.canonicalize()?;
@@ -150,7 +156,10 @@ pub fn install_driver_inf(inf: &Path) -> Result<()> {
         )
     };
     if (result as isize) <= 32 {
-        bail!("Windows declined to start driver installer (code {})", result as isize);
+        bail!(
+            "Windows declined to start driver installer (code {})",
+            result as isize
+        );
     }
     Ok(())
 }

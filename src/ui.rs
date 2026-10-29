@@ -28,8 +28,12 @@ const MUTED: egui::Color32 = egui::Color32::from_rgb(164, 179, 192);
 const WARNING: egui::Color32 = egui::Color32::from_rgb(240, 177, 110);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Page { Overview, Applications, Media, Setup }
-
+enum Page {
+    Overview,
+    Applications,
+    Media,
+    Setup,
+}
 
 struct PackageRow {
     name: String,
@@ -79,7 +83,9 @@ impl BackupApp {
             [64, 64],
             include_bytes!("../assets/icon.rgba"),
         );
-        let logo = cc.egui_ctx.load_texture("android_backup_brand", image, egui::TextureOptions::LINEAR);
+        let logo =
+            cc.egui_ctx
+                .load_texture("android_backup_brand", image, egui::TextureOptions::LINEAR);
         let mut style = (*cc.egui_ctx.style()).clone();
         let mut visuals = egui::Visuals::dark();
         visuals.panel_fill = BACKGROUND;
@@ -209,7 +215,10 @@ impl BackupApp {
                     match result {
                         Ok(path) => {
                             self.adb_path = path.to_string_lossy().into_owned();
-                            self.log(format!("Android Platform Tools installed: {}", path.display()));
+                            self.log(format!(
+                                "Android Platform Tools installed: {}",
+                                path.display()
+                            ));
                         }
                         Err(error) => self.log(format!("Platform Tools import failed: {error}")),
                     }
@@ -357,7 +366,12 @@ impl BackupApp {
 
     fn navigation(&mut self, ui: &mut egui::Ui) {
         ui.add_space(22.0);
-        ui.label(egui::RichText::new("WORKSPACE").color(MUTED).size(11.0).strong());
+        ui.label(
+            egui::RichText::new("WORKSPACE")
+                .color(MUTED)
+                .size(11.0)
+                .strong(),
+        );
         ui.add_space(10.0);
 
         for (page, title) in [
@@ -367,14 +381,15 @@ impl BackupApp {
             (Page::Setup, "Setup & drivers"),
         ] {
             let selected = self.page == page;
-            let button = egui::Button::new(
-                egui::RichText::new(title)
-                    .size(15.0)
-                    .color(if selected { TEXT } else { MUTED }),
-            )
-            .fill(if selected { ACTIVE_NAV } else { SIDEBAR })
-            .stroke(egui::Stroke::NONE)
-            .corner_radius(egui::CornerRadius::same(10));
+            let button =
+                egui::Button::new(egui::RichText::new(title).size(15.0).color(if selected {
+                    TEXT
+                } else {
+                    MUTED
+                }))
+                .fill(if selected { ACTIVE_NAV } else { SIDEBAR })
+                .stroke(egui::Stroke::NONE)
+                .corner_radius(egui::CornerRadius::same(10));
             if ui.add_sized([188.0, 43.0], button).clicked() {
                 self.page = page;
             }
@@ -384,29 +399,58 @@ impl BackupApp {
         ui.add_space(16.0);
         ui.separator();
         ui.add_space(12.0);
-        ui.label(egui::RichText::new("CONNECTION").color(MUTED).size(11.0).strong());
+        ui.label(
+            egui::RichText::new("CONNECTION")
+                .color(MUTED)
+                .size(11.0)
+                .strong(),
+        );
         ui.add_space(8.0);
         if let Some(device) = &self.device {
             ui.label(egui::RichText::new(&device.model).color(TEXT).strong());
-            ui.label(egui::RichText::new(format!("Android {}", device.android_version)).color(MUTED));
+            ui.label(
+                egui::RichText::new(format!("Android {}", device.android_version)).color(MUTED),
+            );
             ui.add_space(6.0);
-            Self::pill(ui, if device.root.is_some() { "Root ready" } else { "Root unavailable" }, device.root.is_some());
+            Self::pill(
+                ui,
+                if device.root.is_some() {
+                    "Root ready"
+                } else {
+                    "Root unavailable"
+                },
+                device.root.is_some(),
+            );
         } else {
             ui.label(egui::RichText::new("No device inspected").color(MUTED));
         }
         ui.add_space(18.0);
-        ui.label(egui::RichText::new("v0.2.0  ·  Local backup").color(MUTED).size(11.0));
+        ui.label(
+            egui::RichText::new("v0.2.0  ·  Local backup")
+                .color(MUTED)
+                .size(11.0),
+        );
     }
 
     fn connection_card(&mut self, ui: &mut egui::Ui) {
         Self::card(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    ui.label(egui::RichText::new("Android device").size(18.0).strong().color(TEXT));
-                    ui.label(egui::RichText::new("Connect with USB debugging enabled").color(MUTED));
+                    ui.label(
+                        egui::RichText::new("Android device")
+                            .size(18.0)
+                            .strong()
+                            .color(TEXT),
+                    );
+                    ui.label(
+                        egui::RichText::new("Connect with USB debugging enabled").color(MUTED),
+                    );
                 });
                 ui.add_space(10.0);
-                if ui.add_enabled(!self.busy, egui::Button::new("Refresh devices")).clicked() {
+                if ui
+                    .add_enabled(!self.busy, egui::Button::new("Refresh devices"))
+                    .clicked()
+                {
                     self.refresh_devices();
                 }
             });
@@ -434,7 +478,11 @@ impl BackupApp {
                     self.inspect_device();
                 }
             });
-            if self.device.as_ref().is_some_and(|d| d.serial != self.selected_serial) {
+            if self
+                .device
+                .as_ref()
+                .is_some_and(|d| d.serial != self.selected_serial)
+            {
                 self.device = None;
                 self.packages.clear();
             }
@@ -443,28 +491,56 @@ impl BackupApp {
                 ui.horizontal(|ui| {
                     Self::pill(
                         ui,
-                        if device.root.is_some() { "UID 0 verified" } else { "Root required" },
+                        if device.root.is_some() {
+                            "UID 0 verified"
+                        } else {
+                            "Root required"
+                        },
                         device.root.is_some(),
                     );
-                    ui.label(egui::RichText::new(format!("{}  |  Android {}", device.model, device.android_version)).color(MUTED));
+                    ui.label(
+                        egui::RichText::new(format!(
+                            "{}  |  Android {}",
+                            device.model, device.android_version
+                        ))
+                        .color(MUTED),
+                    );
                 });
             } else {
-                ui.label(egui::RichText::new("No device verified yet. Check connection or open Setup & drivers.").color(MUTED));
+                ui.label(
+                    egui::RichText::new(
+                        "No device verified yet. Check connection or open Setup & drivers.",
+                    )
+                    .color(MUTED),
+                );
             }
         });
     }
 
     fn overview_panel(&mut self, ui: &mut egui::Ui) {
-        Self::heading(ui, "Backup overview", "A safe, local-first backup of applications and files.");
+        Self::heading(
+            ui,
+            "Backup overview",
+            "A safe, local-first backup of applications and files.",
+        );
         self.connection_card(ui);
 
         let apps = self.packages.iter().filter(|app| app.checked).count();
         let folders = self.storage.iter().filter(|item| item.checked).count();
         Self::card(ui, |ui| {
-            Self::section(ui, "What will be saved", "Your selections are stored locally in this session.");
+            Self::section(
+                ui,
+                "What will be saved",
+                "Your selections are stored locally in this session.",
+            );
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    ui.label(egui::RichText::new(apps.to_string()).size(30.0).strong().color(ACCENT));
+                    ui.label(
+                        egui::RichText::new(apps.to_string())
+                            .size(30.0)
+                            .strong()
+                            .color(ACCENT),
+                    );
                     ui.label(egui::RichText::new("selected apps").color(MUTED));
                     if ui.link("Choose apps").clicked() {
                         self.page = Page::Applications;
@@ -472,7 +548,12 @@ impl BackupApp {
                 });
                 ui.add_space(54.0);
                 ui.vertical(|ui| {
-                    ui.label(egui::RichText::new(folders.to_string()).size(30.0).strong().color(ACCENT));
+                    ui.label(
+                        egui::RichText::new(folders.to_string())
+                            .size(30.0)
+                            .strong()
+                            .color(ACCENT),
+                    );
                     ui.label(egui::RichText::new("media folders").color(MUTED));
                     if ui.link("Choose folders").clicked() {
                         self.page = Page::Media;
@@ -482,13 +563,21 @@ impl BackupApp {
         });
 
         Self::card(ui, |ui| {
-            Self::section(ui, "Backup location", "Choose a private folder with enough available space.");
+            Self::section(
+                ui,
+                "Backup location",
+                "Choose a private folder with enough available space.",
+            );
             ui.horizontal(|ui| {
                 ui.add_enabled(
                     !self.busy,
-                    egui::TextEdit::singleline(&mut self.output_dir).desired_width(ui.available_width() - 90.0),
+                    egui::TextEdit::singleline(&mut self.output_dir)
+                        .desired_width(ui.available_width() - 90.0),
                 );
-                if ui.add_enabled(!self.busy, egui::Button::new("Browse")).clicked() {
+                if ui
+                    .add_enabled(!self.busy, egui::Button::new("Browse"))
+                    .clicked()
+                {
                     if let Some(path) = rfd::FileDialog::new().pick_folder() {
                         self.output_dir = path.to_string_lossy().into_owned();
                     }
@@ -496,19 +585,35 @@ impl BackupApp {
             });
             ui.add_space(6.0);
             ui.add_enabled_ui(!self.busy, |ui| {
-                ui.checkbox(&mut self.force_stop, "Force-stop apps for better data consistency");
+                ui.checkbox(
+                    &mut self.force_stop,
+                    "Force-stop apps for better data consistency",
+                );
             });
-            ui.label(egui::RichText::new("Archives are unencrypted in this preview. Store them securely.").color(WARNING).size(12.0));
+            ui.label(
+                egui::RichText::new(
+                    "Archives are unencrypted in this preview. Store them securely.",
+                )
+                .color(WARNING)
+                .size(12.0),
+            );
         });
 
         Self::card(ui, |ui| {
-            Self::section(ui, "Recent activity", "Connection, backup and verification messages.");
+            Self::section(
+                ui,
+                "Recent activity",
+                "Connection, backup and verification messages.",
+            );
             if !self.current_file.is_empty() {
-                ui.label(egui::RichText::new(format!(
-                    "{}  ·  {:.1} MiB",
-                    self.current_file,
-                    self.transferred_bytes as f64 / 1_048_576.0
-                )).color(ACCENT));
+                ui.label(
+                    egui::RichText::new(format!(
+                        "{}  ·  {:.1} MiB",
+                        self.current_file,
+                        self.transferred_bytes as f64 / 1_048_576.0
+                    ))
+                    .color(ACCENT),
+                );
                 ui.add_space(8.0);
             }
             for entry in self.logs.iter().rev().take(5) {
@@ -518,7 +623,11 @@ impl BackupApp {
     }
 
     fn applications_panel(&mut self, ui: &mut egui::Ui) {
-        Self::heading(ui, "Applications", "Copy APKs, split APKs and accessible private app data.");
+        Self::heading(
+            ui,
+            "Applications",
+            "Copy APKs, split APKs and accessible private app data.",
+        );
         Self::card(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.label(format!(
@@ -526,12 +635,18 @@ impl BackupApp {
                     self.packages.iter().filter(|row| row.checked).count(),
                     self.packages.len()
                 ));
-                if ui.add_enabled(!self.busy, egui::Button::new("Select all")).clicked() {
+                if ui
+                    .add_enabled(!self.busy, egui::Button::new("Select all"))
+                    .clicked()
+                {
                     for app in &mut self.packages {
                         app.checked = true;
                     }
                 }
-                if ui.add_enabled(!self.busy, egui::Button::new("Clear")).clicked() {
+                if ui
+                    .add_enabled(!self.busy, egui::Button::new("Clear"))
+                    .clicked()
+                {
                     for app in &mut self.packages {
                         app.checked = false;
                     }
@@ -560,9 +675,17 @@ impl BackupApp {
     }
 
     fn media_panel(&mut self, ui: &mut egui::Ui) {
-        Self::heading(ui, "Photos & files", "Select the shared storage directories to include.");
+        Self::heading(
+            ui,
+            "Photos & files",
+            "Select the shared storage directories to include.",
+        );
         Self::card(ui, |ui| {
-            Self::section(ui, "Internal shared storage", "Folders are streamed from the phone to the desktop.");
+            Self::section(
+                ui,
+                "Internal shared storage",
+                "Folders are streamed from the phone to the desktop.",
+            );
             egui::Grid::new("storage_categories")
                 .num_columns(2)
                 .spacing([30.0, 12.0])
@@ -578,7 +701,11 @@ impl BackupApp {
                 });
         });
         Self::card(ui, |ui| {
-            Self::section(ui, "How app data works", "App-private storage is separate from photos and shared files.");
+            Self::section(
+                ui,
+                "How app data works",
+                "App-private storage is separate from photos and shared files.",
+            );
             ui.label(egui::RichText::new("App data is read from accessible /data/user/0 and /data/user_de/0 locations after root validation. Device encryption, Keystore-backed content and other profiles may not be recoverable.").color(MUTED));
         });
     }
@@ -602,14 +729,16 @@ impl BackupApp {
         self.log(format!("Installing Platform Tools from {}", path.display()));
         let tx = self.tx.clone();
         thread::spawn(move || {
-            let result = setup::install_platform_tools(&path)
-                .map_err(|error| format!("{error:#}"));
+            let result = setup::install_platform_tools(&path).map_err(|error| format!("{error:#}"));
             let _ = tx.send(Event::ToolsInstalled(result));
         });
     }
 
     fn install_inf(&mut self) {
-        if let Some(path) = rfd::FileDialog::new().add_filter("Windows driver", &["inf"]).pick_file() {
+        if let Some(path) = rfd::FileDialog::new()
+            .add_filter("Windows driver", &["inf"])
+            .pick_file()
+        {
             match setup::install_driver_inf(&path) {
                 Ok(()) => self.log("Driver installation requested. Confirm Windows UAC and check Device Manager for the result."),
                 Err(error) => self.log(format!("Driver installation could not start: {error:#}")),
@@ -618,10 +747,18 @@ impl BackupApp {
     }
 
     fn setup_panel(&mut self, ui: &mut egui::Ui) {
-        Self::heading(ui, "Setup & drivers", "Configure Android tools and Windows USB connectivity.");
+        Self::heading(
+            ui,
+            "Setup & drivers",
+            "Configure Android tools and Windows USB connectivity.",
+        );
 
         Self::card(ui, |ui| {
-            Self::section(ui, "1. Android Platform Tools", "ADB is required to communicate with your device.");
+            Self::section(
+                ui,
+                "1. Android Platform Tools",
+                "ADB is required to communicate with your device.",
+            );
             ui.label(egui::RichText::new("Current ADB executable").color(MUTED));
             ui.add_enabled(
                 !self.busy,
@@ -632,10 +769,16 @@ impl BackupApp {
             ui.add_space(8.0);
             ui.horizontal_wrapped(|ui| {
                 self.link_button(ui, "Download official ZIP", setup::PLATFORM_TOOLS_URL);
-                if ui.add_enabled(!self.busy, egui::Button::new("Install downloaded ZIP")).clicked() {
+                if ui
+                    .add_enabled(!self.busy, egui::Button::new("Install downloaded ZIP"))
+                    .clicked()
+                {
                     self.import_tools();
                 }
-                if ui.add_enabled(!self.busy, egui::Button::new("Choose adb.exe")).clicked() {
+                if ui
+                    .add_enabled(!self.busy, egui::Button::new("Choose adb.exe"))
+                    .clicked()
+                {
                     if let Some(file) = rfd::FileDialog::new()
                         .add_filter("Android Debug Bridge", &["exe"])
                         .pick_file()
@@ -649,7 +792,11 @@ impl BackupApp {
         });
 
         Self::card(ui, |ui| {
-            Self::section(ui, "2. Windows USB driver", "Driver packages depend on the manufacturer and device model.");
+            Self::section(
+                ui,
+                "2. Windows USB driver",
+                "Driver packages depend on the manufacturer and device model.",
+            );
             ui.label(egui::RichText::new("Google USB Driver is intended for Google devices. For Xiaomi, POCO, Samsung and others, select the appropriate OEM driver.").color(MUTED));
             ui.add_space(8.0);
             ui.horizontal_wrapped(|ui| {
@@ -669,9 +816,17 @@ impl BackupApp {
         });
 
         Self::card(ui, |ui| {
-            Self::section(ui, "3. Microsoft Visual C++", "Optional compatibility component for other Windows apps.");
+            Self::section(
+                ui,
+                "3. Microsoft Visual C++",
+                "Optional compatibility component for other Windows apps.",
+            );
             ui.label(egui::RichText::new("Android Backup release builds statically link the C runtime and should not require installing VCRUNTIME140.dll.").color(MUTED));
-            self.link_button(ui, "Download official VC++ x64 runtime", setup::VC_RUNTIME_URL);
+            self.link_button(
+                ui,
+                "Download official VC++ x64 runtime",
+                setup::VC_RUNTIME_URL,
+            );
             ui.label(egui::RichText::new("Run the Microsoft installer yourself if needed. No runtime is installed automatically.").color(MUTED).size(12.0));
         });
     }
@@ -679,7 +834,10 @@ impl BackupApp {
     fn footer(&mut self, ui: &mut egui::Ui) {
         ui.horizontal_centered(|ui| {
             let ready = !self.busy
-                && self.device.as_ref().is_some_and(|device| device.root.is_some());
+                && self
+                    .device
+                    .as_ref()
+                    .is_some_and(|device| device.root.is_some());
             if ui
                 .add_enabled(
                     ready,
@@ -695,16 +853,26 @@ impl BackupApp {
                 self.cancel.store(true, Ordering::Relaxed);
                 self.log("Cancellation requested. Finishing the current I/O operation...");
             }
-            if ui.add_enabled(!self.busy, egui::Button::new("Verify backup")).clicked() {
+            if ui
+                .add_enabled(!self.busy, egui::Button::new("Verify backup"))
+                .clicked()
+            {
                 self.verify_existing();
             }
             if self.busy {
                 ui.spinner();
             }
             ui.add_space(14.0);
-            ui.label(egui::RichText::new(
-                if self.backing_up { "Backup in progress" } else if ready { "Ready to back up" } else { "Rooted device required" },
-            ).color(MUTED));
+            ui.label(
+                egui::RichText::new(if self.backing_up {
+                    "Backup in progress"
+                } else if ready {
+                    "Ready to back up"
+                } else {
+                    "Rooted device required"
+                })
+                .color(MUTED),
+            );
         });
     }
 }
@@ -713,14 +881,27 @@ impl eframe::App for BackupApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.collect_events();
         egui::TopBottomPanel::top("branded_header")
-            .frame(egui::Frame::new().fill(SIDEBAR).inner_margin(egui::Margin::symmetric(24, 14)))
+            .frame(
+                egui::Frame::new()
+                    .fill(SIDEBAR)
+                    .inner_margin(egui::Margin::symmetric(24, 14)),
+            )
             .show(ctx, |ui| {
                 ui.horizontal_centered(|ui| {
                     ui.add(egui::Image::new((self.logo.id(), egui::vec2(48.0, 48.0))));
                     ui.add_space(12.0);
                     ui.vertical(|ui| {
-                        ui.label(egui::RichText::new("Android Backup").color(TEXT).size(22.0).strong());
-                        ui.label(egui::RichText::new("ROOT-AWARE DESKTOP BACKUP").color(MUTED).size(11.0));
+                        ui.label(
+                            egui::RichText::new("Android Backup")
+                                .color(TEXT)
+                                .size(22.0)
+                                .strong(),
+                        );
+                        ui.label(
+                            egui::RichText::new("ROOT-AWARE DESKTOP BACKUP")
+                                .color(MUTED)
+                                .size(11.0),
+                        );
                     });
                     ui.add_space(24.0);
                     Self::pill(ui, "LOCAL ONLY", true);
@@ -728,17 +909,29 @@ impl eframe::App for BackupApp {
             });
 
         egui::TopBottomPanel::bottom("command_bar")
-            .frame(egui::Frame::new().fill(SIDEBAR).inner_margin(egui::Margin::symmetric(24, 12)))
+            .frame(
+                egui::Frame::new()
+                    .fill(SIDEBAR)
+                    .inner_margin(egui::Margin::symmetric(24, 12)),
+            )
             .show(ctx, |ui| self.footer(ui));
 
         egui::SidePanel::left("navigation")
             .exact_width(218.0)
             .resizable(false)
-            .frame(egui::Frame::new().fill(SIDEBAR).inner_margin(egui::Margin::symmetric(16, 8)))
+            .frame(
+                egui::Frame::new()
+                    .fill(SIDEBAR)
+                    .inner_margin(egui::Margin::symmetric(16, 8)),
+            )
             .show(ctx, |ui| self.navigation(ui));
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::new().fill(BACKGROUND).inner_margin(egui::Margin::symmetric(28, 22)))
+            .frame(
+                egui::Frame::new()
+                    .fill(BACKGROUND)
+                    .inner_margin(egui::Margin::symmetric(28, 22)),
+            )
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical()
                     .auto_shrink([false, false])
