@@ -1,0 +1,8 @@
+/target/
+/backups/
+*.part
+*.tmp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
