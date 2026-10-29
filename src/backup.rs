@@ -155,7 +155,12 @@ impl<F: FnMut(Progress)> BackupSession<'_, F> {
             ensure_not_cancelled(self.cancel)?;
             let original = remote_path.rsplit('/').next().context("Invalid APK path")?;
             let filename = format!("{index:02}-{}", sanitize_filename(original));
-            let target = self.root.join("apps").join(package).join("apk").join(filename);
+            let target = self
+                .root
+                .join("apps")
+                .join(package)
+                .join("apk")
+                .join(filename);
             let command = format!("cat {}", shell_quote(remote_path));
             self.copy_artifact(remote_path, &target, ArtifactKind::Apk, &command)?;
         }
@@ -250,11 +255,7 @@ pub fn run_backup(
             let source = format!("/storage/emulated/0/{category}");
             let archive = format!("{}.tar", category.replace('/', "_"));
             let target = folder.join("storage").join(archive);
-            session.copy_directory_if_present(
-                &source,
-                &target,
-                ArtifactKind::SharedStorage,
-            )?;
+            session.copy_directory_if_present(&source, &target, ArtifactKind::SharedStorage)?;
         }
     }
 

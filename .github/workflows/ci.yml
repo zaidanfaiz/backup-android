@@ -32,3 +32,14 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
       - name: Test
         run: cargo test --all
+
+      - name: Build Windows developer executable
+        if: runner.os == 'Windows'
+        run: cargo build
+      - name: Upload Windows developer build
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-backup-windows-dev
+          path: target/debug/backup-android.exe
+          if-no-files-found: error
