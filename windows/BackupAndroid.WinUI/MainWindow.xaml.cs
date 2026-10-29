@@ -93,6 +93,46 @@ public sealed partial class MainWindow : Window
         if (DeviceInfo is not null) DeviceInfo.Text = "Device selected. Check root to load apps.";
     }
 
+    /// <summary>
+    /// Runs in Windows CI only. Exercise each WinUI page, the search list and
+    /// enabled scroll viewers without requiring USB or Android root.
+    /// </summary>
+    internal void RunUiSmokeCheck()
+    {
+        foreach (var item in Shell.MenuItems.OfType<NavigationViewItem>())
+        {
+            Shell.SelectedItem = item;
+            var tag = item.Tag?.ToString() ?? "";
+            var viewer = tag switch
+            {
+                "overview" => OverviewPage,
+                "apps" => ApplicationsPage,
+                "storage" => StoragePage,
+                "security" => SecurityPage,
+                "setup" => SetupPage,
+                _ => throw new InvalidOperationException($"Unknown navigation destination: {tag}")
+            };
+            if (viewer.Visibility != Visibility.Visible || viewer.VerticalScrollMode != ScrollMode.Enabled)
+                throw new InvalidOperationException($"Navigation or vertical scrolling failed on page '{tag}'");
+        }
+
+        _availableApps.Clear();
+        _selectedApps.Clear();
+        _availableApps.AddRange(new[] { "com.example.photos", "org.example.notes", "com.example.music" });
+        foreach (var package in _availableApps) _selectedApps.Add(package);
+        AppSearchBox.Text = "notes";
+        RebuildAppList();
+        if (ApplicationChoices.Items.Count != 1 || _selectedApps.Count != 3)
+            throw new InvalidOperationException("App search incorrectly discarded backup selections");
+        AppSearchBox.Text = "";
+        RebuildAppList();
+        if (ApplicationChoices.Items.Count != 3)
+            throw new InvalidOperationException("App filtering could not be restored");
+
+        Shell.SelectedItem = Shell.MenuItems[0];
+        StartupDiagnostics.Write("UI smoke: navigation, five scroll viewers and app filtering passed.");
+    }
+
     private void OnNavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         // WinUI can raise SelectionChanged while XAML fields are still being created.
