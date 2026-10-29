@@ -272,7 +272,7 @@
                                 <TextBlock Text="03  Restore safely" FontSize="18" FontWeight="SemiBold"/>
                                 <InfoBar Severity="Warning" IsOpen="True" IsClosable="False"
                                          Title="Restoring can replace existing app data"
-                                         Message="Available only for the original device, Android version, and user 0. It requires a rooted and already-installed app. This preview does not automatically reinstall APKs."/>
+                                         Message="Requires the original device, Android version, user 0, and an installed APK build whose SHA-256 matches the backup. This preview never silently reinstalls apps."/>
                                 <Button x:Name="RestoreExecuteButton" Content="Restore selected app data"
                                         Click="RestoreExecute_Click" IsEnabled="False"
                                         HorizontalAlignment="Left" Style="{StaticResource AccentButtonStyle}"/>
