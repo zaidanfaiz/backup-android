@@ -141,7 +141,7 @@ jobs:
           if (-not (Test-Path $log)) { throw "WinUI smoke test created no startup log" }
           $content = Get-Content $log -Raw
           Write-Host $content
-          if ($content -notmatch 'UI smoke: navigation, five scroll viewers and app filtering passed') {
+          if ($content -notmatch 'UI smoke: navigation, six scroll viewers and app filtering passed') {
             throw "WinUI navigation and scroll smoke marker missing"
           }
           if ($content -notmatch 'UI smoke: app data backup presets passed') {
