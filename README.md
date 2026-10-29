@@ -1,141 +1,72 @@
 # Android Backup
 
-Native, local-first Android backup desktop application written in Rust.
+A Windows-native Android backup utility using **WinUI 3** for the interface and **Rust** for the backup engine.
 
-This project uses Android Debug Bridge (ADB) and an **already-active root shell** to back up installed APKs, private app data and shared storage to a desktop computer. Root access is a hard prerequisite. The tool does not root or unlock Android devices.
-
-**Status: v0.2.0 development.** Backup and SHA-256 verification are implemented. Automatic restore, encryption, compression and user-profile migration are not yet implemented.
+**v0.3.0 preview**: WinUI 3 has replaced egui. An administrator UAC prompt is intentionally requested on every launch.
 
 ## Features
 
-- Rust-native desktop UI powered by egui / eframe.
-- Device discovery, device selection and effective UID 0 validation.
-- Works with existing su root access or root-enabled adbd. Temp root must be activated separately.
-- Discovers third-party applications for Android user 0.
-- Exports the base APK and split APKs returned by Android package manager.
-- Backs up available credential-encrypted and device-encrypted app folders.
-- Includes per-app external files, OBB and media when present.
-- Selectable DCIM, Pictures, Movies, Download, Documents, Music, Android/media, Android/data and Android/obb.
-- Optional force-stop before copying each app.
-- Binary-safe ADB streaming without staging full archives on the phone.
-- JSON manifest with file size and SHA-256 digests.
-- Existing-backup verification, cancellation, incomplete-backup detection.
+- Windows App SDK / WinUI 3 frontend with NavigationView, Mica, native dialogs and the Android Backup icon.
+- Unpackaged, self-contained distribution (no separate Windows App SDK runtime installation).
+- UAC manifest with requireAdministrator. Consent or administrator credentials are required before the app opens.
+- Rust headless backup engine with a JSON Lines bridge, without CMD popups.
+- Root verification via ADB, APK and split APK copying, available CE/DE app data and shared storage.
+- SHA-256 verification of completed backups.
+- One-click official Google Platform Tools download and installation into local app data.
+- Driver INF selection and confirmation before elevated Windows PnPUtil installation.
+- Optional link to Microsoft's VC++ Redistributable.
+
+## Windows download
+
+Open the latest successful **WinUI 3 Windows desktop** GitHub Actions run, download artifact
+**android-backup-winui3-win-x64**, extract the archive and its inner ZIP, and keep
+the complete AndroidBackup folder. Double-click AndroidBackup.exe and accept UAC.
+
+The application ships as a self-contained folder, not the old single Rust GUI executable.
+Do not copy AndroidBackup.exe away from its runtime dependencies and backend folder.
 
 ## Requirements
 
-1. Windows 10/11 or supported Linux desktop. macOS has not been tested yet.
-2. Rust stable toolchain for building from source, and Windows SDK with rc.exe when compiling on Windows.
-3. Android SDK Platform Tools installed. Set the full adb.exe path if it is not on PATH.
-4. USB debugging enabled and authorized, preferably with a USB cable.
-5. Already-active temporary root or another working UID 0 shell. The application verifies UID 0, not whether that root originated from a temporary exploit.
-6. Working tar executable on Android, sufficient computer disk space.
-7. Unlock Android's primary user after boot to access credential-encrypted data.
+- Windows 10 build 19041+ or Windows 11, x64.
+- Administrator consent at app launch (the user requested this behavior).
+- A USB-debugging-authorized Android device, with temporary root already active.
+- The device must expose the tar utility for streamed data archives.
+- Enough trusted local disk space for unencrypted backups.
 
-This application does not rely on the restricted Android adb backup format. It uses adb exec-out and the already-authorized root shell.
+**Windows administrator rights are not Android root privileges.**
+The phone's root shell must be obtained separately.
 
-## Modern desktop interface and setup
+## Architecture
 
-Version 0.2.0 reorganizes the desktop app into four navigation pages: **Overview**, **Applications**, **Photos & files**, and **Setup & drivers**. The application logo is always visible in the header, in addition to the window and executable icons.
+- windows/BackupAndroid.WinUI: C# WinUI 3 interface, UAC manifest, native driver setup
+- src/main.rs: Rust JSON Lines backend entry point
+- src/adb.rs: root detection and streaming
+- src/backup.rs: APK/private data/shared media copying
+- src/manifest.rs: SHA-256 integrity verification
 
-**ADB installation in the app**
+The UI talks to the Rust engine using one JSON request on stdin and JSON Lines
+status/progress events on stdout. Neither the UI nor the backend opens a visible CMD window.
 
-1. Open **Setup & drivers** and click **Download official ZIP**. Review and accept Google's SDK license on the official page.
-2. Save the Platform Tools ZIP, then click **Install downloaded ZIP**.
-3. The app checks archive paths and size limits, extracts it into a new folder under the user-local application data directory, and sets the new ADB executable path automatically.
-4. Connect the Android device, authorize the USB debugging prompt, then refresh and inspect.
+## Security and limits
 
-**Windows USB drivers**
+- Always-elevated applications have greater privileges and risk. A separate elevated
+  driver helper is preferable in future revisions, but this preview requests elevation
+  at startup as specified.
+- Driver installation requires an explicitly selected OEM INF and user confirmation.
+  It does not guess and force-install random vendor drivers.
+- Backups are currently unencrypted and can contain private application data.
+- Android encryption, Keystore-bound data, UID/GID mapping, signatures and SELinux
+  restrictions mean some backups cannot be restored completely.
+- Automatic restore and physical-device validation are not yet implemented.
 
-- For Google devices, **Google USB driver** opens the official download page. For non-Google devices, **OEM driver directory** opens Google's manufacturer link directory.
-- After getting the correct driver from its publisher, select its `.inf` through **Install selected INF**. The app invokes Windows' built-in `pnputil /add-driver /install` with a standard UAC consent prompt. It does not silently install an unverified driver.
-- Use **Device Manager** to inspect the result. Launching the installer does not mean the driver necessarily matched your phone.
-- Installing a mismatched driver can cause connection problems. Do not use Google drivers blindly for Xiaomi, POCO, Samsung or other brands.
-- The current portable EXE statically links the MSVC runtime. A separate **Download official VC++ x64 runtime** link is supplied only as an optional compatibility download for other Windows applications.
+## Build
 
-No driver ZIP or executable is mirrored by this project. The supported downloads open their official publisher pages.
+The repository includes GitHub Actions for both Rust engine tests and a self-contained
+Windows WinUI 3 application bundle.
 
-## Windows portable executable
+Locally on Windows with the Windows SDK, .NET 8 SDK, and Rust installed:
 
-Download the latest successful GitHub Actions artifact named **android-backup-windows-x64-portable**. Extract it, then double-click **backup-android.exe**.
+    cargo build --release --bin backup-android-core
+    dotnet publish windows/BackupAndroid.WinUI/BackupAndroid.WinUI.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64
 
-- This is a native Windows GUI application and does **not** launch a command prompt. ADB subprocesses are run with hidden console windows.
-- The executable contains the Android Backup icon for Windows Explorer, and the same icon appears in its window/taskbar.
-- The Windows/MSVC build statically links the C runtime, avoiding the missing `VCRUNTIME140.dll` startup error seen in the older developer build.
-- Android SDK Platform Tools (ADB) must still be available in PATH, or configure its full path in the application's Connection section.
-- The portable executable is not code-signed. Windows SmartScreen may warn about a new or unknown publisher.
-
-The icon is authored in `assets/icon.svg` with companion `.ico` (Windows resources) and raw RGBA (window icon) assets. The generated release executable is available from the Actions run artifacts, not from old build downloads.
-
-## Build and run
-
-    git clone https://github.com/zaidanfaiz/backup-android.git
-    cd backup-android
-    cargo run --release
-
-Once launched:
-
-1. Connect the device and authorize its USB debugging prompt.
-2. Click Refresh devices, choose the device, then Inspect device & root.
-3. Ensure the app reports Root verified. If root is unavailable, obtain temp root separately and inspect again.
-4. Select installed apps and shared-storage categories.
-5. Choose a private local destination directory.
-6. Optionally force-stop selected apps for more consistent app database copies.
-7. Start backup. You can run Verify existing backup to check a saved directory again.
-
-## Example output
-
-    AndroidBackups/
-      android-SERIAL-YYYYMMDD-HHMMSS-SSS/
-        manifest.json
-        apps/
-          com.example.app/
-            apk/
-              00-base.apk
-              01-split_config.arm64_v8a.apk
-            credential_encrypted.tar
-            device_encrypted.tar
-            external_data.tar
-            obb.tar
-            media.tar
-        storage/
-          DCIM.tar
-          Pictures.tar
-          Android_data.tar
-
-Only selected categories and paths found on the device are included. The actual APK names vary. Android app backup files and shared-storage content can be sensitive and may consume considerable disk space.
-
-The manifest stores device details, package selections, artifacts, SHA-256 digests and a completion flag. Failed/cancelled sessions leave the flag false. TAR archives are uncompressed in this version.
-
-## Technical and security limitations
-
-- **Automatic restore is not implemented.** Restoring private app data on another Android version, UID, signature or device may fail. SELinux contexts and hardware-bound Keystore keys can also prevent successful restoration.
-- **Not a guaranteed full-system image.** Locked profiles, encryption, volatile root access, running databases and inaccessible partitions may leave some data unavailable.
-- **User 0, third-party apps only** in the current app picker. Work profiles, other Android users and system apps are not selectable yet.
-- **Not an atomic snapshot.** Apps can change data during copying. Optional force-stop helps, but does not create a filesystem snapshot.
-- **Plaintext data at rest.** There is no backup encryption yet. Private data, sessions and credentials may be contained in the output. Never upload your backup to a public repository.
-- **Do not treat partial backups as complete.** Published artifacts are hashed and locally verified at completion. Incomplete backups cannot pass verification.
-- **Temp root can expire.** Backup stops on a detected ADB/root command error. Refresh root if necessary.
-- **No automated device-rooting, activation bypass or exploit code.**
-
-## Source layout
-
-    src/main.rs        Desktop application entry point
-    src/ui.rs          UI state and background worker events
-    src/adb.rs         ADB execution, root checks and streaming
-    src/backup.rs      APK, app data and shared-storage orchestration
-    src/manifest.rs    Backup manifest and SHA-256 verification
-
-Lengthy ADB operations run on worker threads instead of blocking the UI. Transfers are written to temporary .part files before being committed. Android package names are validated and device-provided paths are shell-quoted.
-
-## Roadmap
-
-- Preflight space estimation and detailed per-artifact diagnostics
-- Compression and authenticated encryption
-- Safe, version-aware restore flow and validation
-- Multi-user / work profile support
-- Android emulator and device integration tests
-- Signed desktop release builds
-
-## Responsible use
-
-Use this tool only on Android devices or profiles that you own or have explicit authorization to manage. A working root session exposes sensitive user data. Backups must be stored and handled responsibly.
+Place the Rust executable in a backend subfolder beside the published WinUI 3 application.

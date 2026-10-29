@@ -1,0 +1,202 @@
+<Window
+    x:Class="BackupAndroid.WinUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Android Backup">
+    <Grid Background="{ThemeResource AppCanvas}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Padding="26,20" ColumnSpacing="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="52"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Image Grid.Column="0" Width="48" Height="48" Source="ms-appx:///Assets/icon.svg"/>
+            <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                <TextBlock Text="Android Backup" FontSize="23" FontWeight="SemiBold"/>
+                <TextBlock Text="NATIVE WINUI 3  /  RUST ENGINE" Opacity="0.66" FontSize="12"/>
+            </StackPanel>
+            <Border Grid.Column="2" Background="{ThemeResource Surface}" CornerRadius="16"
+                    Padding="12,7" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <SymbolIcon Symbol="Shield"/>
+                    <TextBlock Text="Administrator mode" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <NavigationView Grid.Row="1" x:Name="Shell" PaneDisplayMode="Left"
+                        OpenPaneLength="230" CompactPaneLength="56"
+                        IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
+                        IsPaneToggleButtonVisible="False"
+                        SelectionChanged="OnNavigationChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Overview" Tag="overview">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Home"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Applications" Tag="apps">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="AllApps"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Photos &amp; files" Tag="storage">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Folder"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Setup &amp; drivers" Tag="setup">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Setting"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+            <Grid Padding="28,12,28,20">
+                <ScrollViewer x:Name="OverviewPage" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="0" MaxWidth="920" HorizontalAlignment="Stretch">
+                        <TextBlock Text="Backup overview" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Back up app data and personal files from an already-rooted Android device."
+                                   Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,24"/>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Device connection" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Connect by USB, enable debugging and approve this computer on the phone."
+                                           Opacity="0.7" TextWrapping="Wrap"/>
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <ComboBox x:Name="DeviceCombo" MinWidth="270"
+                                              PlaceholderText="No authorized devices"/>
+                                    <Button Content="Refresh devices" Click="Refresh_Click"/>
+                                    <Button Content="Check root" Click="Inspect_Click"/>
+                                </StackPanel>
+                                <TextBlock x:Name="DeviceInfo" Text="Not connected" Opacity="0.8"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Destination" FontSize="19" FontWeight="SemiBold"/>
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="DestinationBox" PlaceholderText="Select backup folder"/>
+                                    <Button Grid.Column="1" Content="Browse..." Click="Destination_Click"/>
+                                </Grid>
+                                <CheckBox x:Name="StopAppsCheck" Content="Force-stop apps for a more consistent backup"/>
+                                <TextBlock Text="Backups currently contain unencrypted private data. Use a trusted local disk."
+                                           Foreground="DarkOrange" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Activity" FontSize="19" FontWeight="SemiBold"/>
+                                <ListView x:Name="ActivityList" Height="210" SelectionMode="None"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="ApplicationsPage" Visibility="Collapsed">
+                    <StackPanel MaxWidth="920" Spacing="12">
+                        <TextBlock Text="Applications" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Select installed applications. Split APKs and available CE/DE app data are included."
+                                   Opacity="0.7" TextWrapping="Wrap"/>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="Select all" Click="SelectAllApps_Click"/>
+                                    <Button Content="Clear" Click="ClearApps_Click"/>
+                                    <TextBlock x:Name="AppCount" Text="Inspect a device to load apps"
+                                               VerticalAlignment="Center" Opacity="0.7"/>
+                                </StackPanel>
+                                <ListView x:Name="ApplicationChoices" Height="465" SelectionMode="Multiple"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="StoragePage" Visibility="Collapsed">
+                    <StackPanel MaxWidth="920" Spacing="14">
+                        <TextBlock Text="Photos &amp; files" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Select shared-storage categories to include in this backup."
+                                   Opacity="0.7" TextWrapping="Wrap"/>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Shared storage" FontSize="19" FontWeight="SemiBold"/>
+                                <CheckBox x:Name="DcimCheck" Content="Camera  /  DCIM" IsChecked="True"/>
+                                <CheckBox x:Name="PicturesCheck" Content="Pictures" IsChecked="True"/>
+                                <CheckBox x:Name="MoviesCheck" Content="Videos  /  Movies" IsChecked="True"/>
+                                <CheckBox x:Name="DownloadsCheck" Content="Downloads" IsChecked="True"/>
+                                <CheckBox x:Name="DocumentsCheck" Content="Documents" IsChecked="True"/>
+                                <CheckBox x:Name="MusicCheck" Content="Music"/>
+                                <CheckBox x:Name="ExternalDataCheck" Content="Android/data"/>
+                                <CheckBox x:Name="ExternalMediaCheck" Content="Android/media"/>
+                                <CheckBox x:Name="ObbCheck" Content="Android/obb"/>
+                            </StackPanel>
+                        </Border>
+                        <InfoBar IsOpen="True" IsClosable="False" Severity="Informational"
+                                 Title="Temp root is required"
+                                 Message="Some encrypted content and hardware-bound Android Keystore data cannot be restored on other devices."/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="SetupPage" Visibility="Collapsed">
+                    <StackPanel MaxWidth="920" Spacing="12">
+                        <TextBlock Text="Setup &amp; drivers" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Set up ADB, Android USB drivers, and optional Windows components."
+                                   Opacity="0.7" TextWrapping="Wrap"/>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Android Platform Tools" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Install ADB from Google's official ZIP into the local application folder."
+                                           Opacity="0.7" TextWrapping="Wrap"/>
+                                <TextBox x:Name="AdbPathBox" Text="adb" Header="ADB executable path"/>
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="Download &amp; install ADB" Click="InstallAdb_Click"/>
+                                    <Button Content="Open official download page" Click="OpenGoogle_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Windows USB driver" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Driver packages are device-specific. Download the driver from the correct manufacturer, then install its INF after confirmation."
+                                           Opacity="0.7" TextWrapping="Wrap"/>
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="Find OEM driver" Click="OpenOem_Click"/>
+                                    <Button Content="Install driver INF" Click="InstallInf_Click"/>
+                                    <Button Content="Scan devices" Click="ScanDevices_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Microsoft Visual C++ runtime" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Optional compatibility dependency. WinUI runtime is bundled with this application."
+                                           Opacity="0.7" TextWrapping="Wrap"/>
+                                <Button Content="Open Microsoft VC++ installer" HorizontalAlignment="Left"
+                                        Click="OpenVc_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </NavigationView>
+
+        <Grid Grid.Row="2" Background="{ThemeResource Surface}" Padding="24,12" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="StartButton" Content="Start backup" Click="Backup_Click"/>
+            <Button x:Name="CancelButton" Grid.Column="1" Content="Cancel" Click="Cancel_Click"
+                    IsEnabled="False"/>
+            <Button Grid.Column="2" Content="Verify backup" Click="Verify_Click"/>
+            <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="4">
+                <ProgressBar x:Name="WorkProgress" IsIndeterminate="True" Visibility="Collapsed"/>
+                <TextBlock x:Name="FooterText" Text="Connect a device to begin"
+                           Opacity="0.7" TextAlignment="Right"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

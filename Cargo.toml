@@ -1,30 +1,19 @@
 [package]
 name = "backup-android"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.85"
-description = "Root-aware Android backup desktop application"
+description = "Root-aware Android backup engine for the WinUI 3 desktop frontend"
 repository = "https://github.com/zaidanfaiz/backup-android"
 publish = false
+
+[[bin]]
+name = "backup-android-core"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
-eframe = { version = "0.33.3", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
-rfd = "0.15"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-webbrowser = "1"
-zip = { version = "2.4", default-features = false, features = ["deflate"] }
-
-[build-dependencies]
-winresource = "0.1.34"
-
-[package.metadata.winresource]
-FileDescription = "Android Backup desktop application"
-ProductName = "Android Backup"
-OriginalFilename = "backup-android.exe"
-
-[target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_UI_Shell", "Win32_Foundation"] }
