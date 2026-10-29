@@ -4,7 +4,7 @@ Native, local-first Android backup desktop application written in Rust.
 
 This project uses Android Debug Bridge (ADB) and an **already-active root shell** to back up installed APKs, private app data and shared storage to a desktop computer. Root access is a hard prerequisite. The tool does not root or unlock Android devices.
 
-**Status: v0.1.0 development.** Backup and SHA-256 verification are implemented. Automatic restore, encryption, compression and user-profile migration are not yet implemented.
+**Status: v0.1.1 development.** Backup and SHA-256 verification are implemented. Automatic restore, encryption, compression and user-profile migration are not yet implemented.
 
 ## Features
 
@@ -24,7 +24,7 @@ This project uses Android Debug Bridge (ADB) and an **already-active root shell*
 ## Requirements
 
 1. Windows 10/11 or supported Linux desktop. macOS has not been tested yet.
-2. Rust stable toolchain for building from source.
+2. Rust stable toolchain for building from source, and Windows SDK with rc.exe when compiling on Windows.
 3. Android SDK Platform Tools installed. Set the full adb.exe path if it is not on PATH.
 4. USB debugging enabled and authorized, preferably with a USB cable.
 5. Already-active temporary root or another working UID 0 shell. The application verifies UID 0, not whether that root originated from a temporary exploit.
@@ -32,6 +32,18 @@ This project uses Android Debug Bridge (ADB) and an **already-active root shell*
 7. Unlock Android's primary user after boot to access credential-encrypted data.
 
 This application does not rely on the restricted Android adb backup format. It uses adb exec-out and the already-authorized root shell.
+
+## Windows portable executable
+
+Download the latest successful GitHub Actions artifact named **android-backup-windows-x64-portable**. Extract it, then double-click **backup-android.exe**.
+
+- This is a native Windows GUI application and does **not** launch a command prompt. ADB subprocesses are run with hidden console windows.
+- The executable contains the Android Backup icon for Windows Explorer, and the same icon appears in its window/taskbar.
+- The Windows/MSVC build statically links the C runtime, avoiding the missing `VCRUNTIME140.dll` startup error seen in the older developer build.
+- Android SDK Platform Tools (ADB) must still be available in PATH, or configure its full path in the application's Connection section.
+- The portable executable is not code-signed. Windows SmartScreen may warn about a new or unknown publisher.
+
+The icon is authored in `assets/icon.svg` with companion `.ico` (Windows resources) and raw RGBA (window icon) assets. The generated release executable is available from the Actions run artifacts, not from old build downloads.
 
 ## Build and run
 

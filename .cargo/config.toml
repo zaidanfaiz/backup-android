@@ -1,0 +1,4 @@
+# Build Windows/MSVC executables with the C runtime linked statically.
+# Prevents failures on Windows systems without VCRUNTIME140.dll.
+[target.'cfg(target_env = "msvc")']
+rustflags = ["-C", "target-feature=+crt-static"]

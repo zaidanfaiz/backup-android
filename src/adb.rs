@@ -41,6 +41,16 @@ pub struct Adb {
 
 fn adb_command(binary: &Path, serial: Option<&str>) -> Command {
     let mut cmd = Command::new(binary);
+
+    // A GUI application must not spawn a new terminal for every ADB call.
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
     if let Some(serial) = serial {
         cmd.arg("-s").arg(serial);
     }
