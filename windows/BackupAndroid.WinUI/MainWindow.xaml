@@ -3,34 +3,34 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Android Backup">
-    <Grid Background="{ThemeResource AppCanvas}">
+    <Grid Background="{ThemeResource AppCanvas}" MinHeight="0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Padding="26,20" ColumnSpacing="14">
+        <Grid Grid.Row="0" Padding="24,12" ColumnSpacing="14">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="52"/>
+                <ColumnDefinition Width="46"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Image Grid.Column="0" Width="48" Height="48" Source="ms-appx:///Assets/icon.svg"/>
+            <Image Grid.Column="0" Width="40" Height="40" Source="ms-appx:///Assets/icon.svg"/>
             <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
-                <TextBlock Text="Android Backup" FontSize="23" FontWeight="SemiBold"/>
-                <TextBlock Text="NATIVE WINUI 3  /  RUST ENGINE" Opacity="0.66" FontSize="12"/>
+                <TextBlock Text="Android Backup" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Text="DESKTOP BACKUP  ·  ROOT ACCESS" Opacity="0.66" FontSize="12"/>
             </StackPanel>
             <Border Grid.Column="2" Background="{ThemeResource Surface}" CornerRadius="16"
                     Padding="12,7" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <SymbolIcon Symbol="Setting"/>
-                    <TextBlock Text="Administrator mode" VerticalAlignment="Center"/>
+                    <TextBlock Text="Local backup" VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <NavigationView Grid.Row="1" x:Name="Shell" PaneDisplayMode="Left"
+        <NavigationView Grid.Row="1" x:Name="Shell" PaneDisplayMode="Left" MinHeight="0" VerticalAlignment="Stretch"
                         OpenPaneLength="230" CompactPaneLength="56"
                         IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
                         IsPaneToggleButtonVisible="False"
@@ -52,10 +52,12 @@
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Setting"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
-            <Grid Padding="28,12,28,20">
-                <ScrollViewer x:Name="OverviewPage" VerticalScrollBarVisibility="Auto">
+            <Grid Padding="24,10,24,18" MinHeight="0">
+                <ScrollViewer x:Name="OverviewPage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                              VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
+                              HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="0" MaxWidth="920" HorizontalAlignment="Stretch">
-                        <TextBlock Text="Backup overview" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Overview" FontSize="26" FontWeight="SemiBold"/>
                         <TextBlock Text="Back up app data and personal files from an already-rooted Android device."
                                    Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,24"/>
                         <Border Style="{StaticResource SurfaceCard}">
@@ -97,9 +99,11 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <ScrollViewer x:Name="ApplicationsPage" Visibility="Collapsed">
+                <ScrollViewer x:Name="ApplicationsPage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                              VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
+                              HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
                     <StackPanel MaxWidth="920" Spacing="12">
-                        <TextBlock Text="Applications" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Applications" FontSize="26" FontWeight="SemiBold"/>
                         <TextBlock Text="Select installed applications. Split APKs and available CE/DE app data are included."
                                    Opacity="0.7" TextWrapping="Wrap"/>
                         <Border Style="{StaticResource SurfaceCard}">
@@ -116,9 +120,11 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <ScrollViewer x:Name="StoragePage" Visibility="Collapsed">
+                <ScrollViewer x:Name="StoragePage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                              VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
+                              HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
                     <StackPanel MaxWidth="920" Spacing="14">
-                        <TextBlock Text="Photos &amp; files" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Photos &amp; files" FontSize="26" FontWeight="SemiBold"/>
                         <TextBlock Text="Select shared-storage categories to include in this backup."
                                    Opacity="0.7" TextWrapping="Wrap"/>
                         <Border Style="{StaticResource SurfaceCard}">
@@ -141,9 +147,11 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <ScrollViewer x:Name="SecurityPage" Visibility="Collapsed">
+                <ScrollViewer x:Name="SecurityPage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                              VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
+                              HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
                     <StackPanel MaxWidth="920" Spacing="14">
-                        <TextBlock Text="Ransomware scan" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Ransomware scan" FontSize="26" FontWeight="SemiBold"/>
                         <TextBlock Text="Read-only investigation of suspicious filenames in Android shared storage."
                                    Opacity="0.7" TextWrapping="Wrap"/>
                         <Border Style="{StaticResource SurfaceCard}">
@@ -168,9 +176,11 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <ScrollViewer x:Name="SetupPage" Visibility="Collapsed">
+                <ScrollViewer x:Name="SetupPage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                              VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
+                              HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
                     <StackPanel MaxWidth="920" Spacing="12">
-                        <TextBlock Text="Setup &amp; drivers" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Setup &amp; drivers" FontSize="26" FontWeight="SemiBold"/>
                         <TextBlock Text="Set up ADB, Android USB drivers, and optional Windows components."
                                    Opacity="0.7" TextWrapping="Wrap"/>
                         <Border Style="{StaticResource SurfaceCard}">
@@ -211,14 +221,14 @@
             </Grid>
         </NavigationView>
 
-        <Grid Grid.Row="2" Background="{ThemeResource Surface}" Padding="24,12" ColumnSpacing="12">
+        <Grid Grid.Row="2" Background="{ThemeResource Surface}" Padding="18,10" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Button x:Name="StartButton" Content="Start backup" Click="Backup_Click"/>
+            <Button x:Name="StartButton" Content="Backup selected apps &amp; files" Click="Backup_Click" Style="{StaticResource AccentButtonStyle}"/>
             <Button x:Name="CancelButton" Grid.Column="1" Content="Cancel" Click="Cancel_Click"
                     IsEnabled="False"/>
             <Button Grid.Column="2" Content="Verify backup" Click="Verify_Click"/>
