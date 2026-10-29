@@ -2,7 +2,7 @@
 
 A Windows-native Android backup utility using **WinUI 3** for the interface and **Rust** for the backup engine.
 
-**v0.3.1 preview**: A native Windows launcher now separates the WinUI 3 runtime from the top-level executable and reports startup failures. UAC remains required when WinUI starts.
+**v0.3.2 preview**: Fixes a WinUI startup crash caused by a missing default theme dictionary, preserves the native launcher, and adds clearly separated Config, Language and Logs folders. Windows UAC remains required.
 
 ## Features
 
@@ -26,16 +26,21 @@ Download the latest successful **WinUI 3 Windows desktop** artifact named
 AndroidBackup/
 ├── AndroidBackup.exe        Windows launcher with app icon
 ├── README.txt
-└── App/
-    ├── AndroidBackup.exe    WinUI 3 executable
-    ├── *.dll, *.pri         Required co-located Windows / .NET runtime
-    ├── Assets/              Application icons
-    ├── backend/             Rust backup engine
-    └── en-US/, ...          Windows language resources
+├── App/
+│   ├── AndroidBackup.exe    Real WinUI 3 executable
+│   ├── *.dll, *.pri         Required runtime dependencies
+│   ├── Assets/              Application icons
+│   ├── backend/             Rust backup engine
+│   └── en-US/, ...          Framework language satellite resources
+├── Config/                 Platform configuration notes
+├── Language/               User documentation in English and Indonesian
+└── Logs/                   Portable startup diagnostic log copies
 ```
 
 The launcher reports missing runtime files and early WinUI crashes instead
-of silently exiting. Startup logs are stored in
+of silently exiting. v0.3.2 also merges `XamlControlsResources` before custom
+theme definitions in `App.xaml`, fixing the reported
+`TabViewButtonBackground` lookup exception at window startup. Startup logs are stored in
 `%LOCALAPPDATA%\\AndroidBackup\\Logs\\launcher.log` and
 `%LOCALAPPDATA%\\AndroidBackup\\Logs\\startup.log`.
 
@@ -44,7 +49,9 @@ DLL loading require some DLLs next to the real application executable.
 Renaming or moving them into an arbitrary DLL folder can prevent startup.
 Instead, the release keeps the root directory clean and contains all WinUI
 dependencies under `App/`; language files remain in their legitimate
-locale-specific subfolders.
+locale-specific subfolders. The Language folder contains application-owned
+user documentation and does not replace Windows framework satellite resources.
+Portable logs are mirrored when writable; the per-user logs remain primary.
 
 The release process validates the bundled Rust engine, icon and WinUI
 runtime resources, and runs a launcher installation preflight.
