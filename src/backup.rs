@@ -235,7 +235,7 @@ pub fn run_backup(
             bail!("Unknown storage category: {category}");
         }
     }
-    let adb = Adb::new(options.adb_path, &options.device)?;
+    let adb = Adb::new(options.adb_path.clone(), &options.device)?;
     adb.check_ready()?;
 
     fs::create_dir_all(&options.destination)?;
