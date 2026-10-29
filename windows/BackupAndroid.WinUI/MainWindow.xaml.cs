@@ -129,8 +129,19 @@ public sealed partial class MainWindow : Window
         if (ApplicationChoices.Items.Count != 3)
             throw new InvalidOperationException("App filtering could not be restored");
 
+        // Validate that backup presets actually change the selected components.
+        BackupPreset.SelectedIndex = 2;
+        if (PrivateDataCheck.IsChecked == true || AppExternalCheck.IsChecked == true)
+            throw new InvalidOperationException("APK-only preset unexpectedly includes private app data");
+        BackupPreset.SelectedIndex = 0;
+        if (ApkCheck.IsChecked != true || PrivateDataCheck.IsChecked != true
+            || AppExternalCheck.IsChecked != true || AppObbCheck.IsChecked != true
+            || AppMediaCheck.IsChecked != true)
+            throw new InvalidOperationException("Complete app backup preset did not enable all components");
+
         Shell.SelectedItem = Shell.MenuItems[0];
         StartupDiagnostics.Write("UI smoke: navigation, five scroll viewers and app filtering passed.");
+        StartupDiagnostics.Write("UI smoke: app data backup presets passed.");
     }
 
     private void OnNavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
