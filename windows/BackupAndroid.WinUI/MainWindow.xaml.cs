@@ -54,7 +54,13 @@ public sealed partial class MainWindow : Window
         try
         {
             if (File.Exists(icon)) appWindow.SetIcon(icon);
-            appWindow.Resize(new Windows.Graphics.SizeInt32(1180, 800));
+            // Fit smaller Windows laptops instead of allowing the command bar
+            // to extend beyond the usable screen and trapping scrolling.
+            var display = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
+            var work = display.WorkArea;
+            var width = Math.Min(1180, Math.Max(640, work.Width - 64));
+            var height = Math.Min(800, Math.Max(480, work.Height - 64));
+            appWindow.Resize(new Windows.Graphics.SizeInt32(width, height));
         }
         catch (Exception error)
         {
@@ -150,6 +156,14 @@ public sealed partial class MainWindow : Window
         StartupDiagnostics.Write("UI smoke: app data backup presets passed.");
     }
 
+    private void OpenRestore_Click(object sender, RoutedEventArgs e)
+    {
+        var item = Shell.MenuItems.OfType<NavigationViewItem>()
+            .FirstOrDefault(entry => string.Equals(entry.Tag?.ToString(), "restore", StringComparison.Ordinal));
+        if (item is not null)
+            Shell.SelectedItem = item;
+    }
+
     private void OnNavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         // WinUI can raise SelectionChanged while XAML fields are still being created.
@@ -180,7 +194,7 @@ public sealed partial class MainWindow : Window
         CancelButton.IsEnabled = busy && cancellable;
         WorkProgress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         if (RestoreExecuteButton is not null)
-            RestoreExecuteButton.IsEnabled = !busy && _restorePlanValidated && _restoreTargetMatches;
+            RestoreExecuteButton.IsEnabled = !busy && _rootVerified && _restorePlanValidated && _restoreTargetMatches;
     }
 
     private string SelectedDevice => DeviceCombo.SelectedItem?.ToString() ?? "";
@@ -516,7 +530,7 @@ public sealed partial class MainWindow : Window
             : $"Verified {count} files, but device identity or Android version differs. " +
               $"Source: {original}, Android {version}. Restore is blocked.";
         RestoreResultText.Text = "Review the backup and choose an app before restoring.";
-        RestoreExecuteButton.IsEnabled = _restoreTargetMatches && _restorePlanValidated && !_isBusy;
+        RestoreExecuteButton.IsEnabled = _restoreTargetMatches && _restorePlanValidated && _rootVerified && !_isBusy;
         Log(RestorePreviewText.Text);
     }
 
