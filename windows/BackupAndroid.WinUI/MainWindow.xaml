@@ -45,6 +45,9 @@
                 <NavigationViewItem Content="Photos &amp; files" Tag="storage">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Folder"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="Ransomware scan" Tag="security">
+                    <NavigationViewItem.Icon><SymbolIcon Symbol="Find"/></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Setup &amp; drivers" Tag="setup">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Setting"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
@@ -135,6 +138,33 @@
                         <InfoBar IsOpen="True" IsClosable="False" Severity="Informational"
                                  Title="Temp root is required"
                                  Message="Some encrypted content and hardware-bound Android Keystore data cannot be restored on other devices."/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <ScrollViewer x:Name="SecurityPage" Visibility="Collapsed">
+                    <StackPanel MaxWidth="920" Spacing="14">
+                        <TextBlock Text="Ransomware scan" FontSize="30" FontWeight="SemiBold"/>
+                        <TextBlock Text="Read-only investigation of suspicious filenames in Android shared storage."
+                                   Opacity="0.7" TextWrapping="Wrap"/>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Scan connected Android" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Requires an active root shell. Checks selected shared folders for ransom-note filenames and unusual encrypted-file extensions."
+                                           Opacity="0.7" TextWrapping="Wrap"/>
+                                <Button Content="Scan for indicators" Click="Scan_Click" HorizontalAlignment="Left"/>
+                                <TextBlock x:Name="SecuritySummary" Text="No scan performed yet." TextWrapping="Wrap"/>
+                                <TextBlock x:Name="SecurityStatistics" Text=""/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Review findings" FontSize="19" FontWeight="SemiBold"/>
+                                <ListView x:Name="SecurityFindings" Height="280" SelectionMode="None"/>
+                            </StackPanel>
+                        </Border>
+                        <InfoBar IsOpen="True" IsClosable="False" Severity="Informational"
+                                 Title="Heuristic scan, not antivirus"
+                                 Message="A match does not confirm ransomware, and no matches do not prove safety. The scan does not delete, quarantine or upload files."/>
                     </StackPanel>
                 </ScrollViewer>
 
