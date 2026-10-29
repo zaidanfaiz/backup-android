@@ -12,14 +12,14 @@
             </ResourceDictionary.MergedDictionaries>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="AppCanvas" Color="#111A25"/>
-                    <SolidColorBrush x:Key="Surface" Color="#1B2836"/>
-                    <SolidColorBrush x:Key="SurfaceStroke" Color="#334555"/>
+                    <SolidColorBrush x:Key="AppCanvas" Color="#DB151A21"/>
+                    <SolidColorBrush x:Key="Surface" Color="#F0232A32"/>
+                    <SolidColorBrush x:Key="SurfaceStroke" Color="#4B5865"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="AppCanvas" Color="#F5F7F9"/>
-                    <SolidColorBrush x:Key="Surface" Color="#FFFFFF"/>
-                    <SolidColorBrush x:Key="SurfaceStroke" Color="#D9E1E8"/>
+                    <SolidColorBrush x:Key="AppCanvas" Color="#EAF5F7FA"/>
+                    <SolidColorBrush x:Key="Surface" Color="#F9FFFFFF"/>
+                    <SolidColorBrush x:Key="SurfaceStroke" Color="#DCE3E9"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
             <Style x:Key="SurfaceCard" TargetType="Border">
