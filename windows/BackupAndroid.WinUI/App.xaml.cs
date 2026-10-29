@@ -11,11 +11,12 @@ public partial class App : Application
         StartupDiagnostics.Write("WinUI application constructor entered.");
         try
         {
+            // WinUI initializes application resources during its startup lifecycle.
+            // Reading Application.Resources from the App constructor can throw
+            // COMException (0x8000FFFF) before the framework is ready.
+            // App.xaml declares XamlControlsResources; CI checks its structure.
             InitializeComponent();
-            StartupDiagnostics.Write($"WinUI default resource dictionaries loaded: {Resources.MergedDictionaries.Count}");
-            if (Resources.MergedDictionaries.Count == 0)
-                throw new InvalidOperationException(
-                    "WinUI default styles were not registered. Check App.xaml XamlControlsResources.");
+            StartupDiagnostics.Write("App.InitializeComponent returned successfully.");
 
             UnhandledException += (_, args) =>
             {
