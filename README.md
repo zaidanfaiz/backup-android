@@ -47,6 +47,18 @@ The phone's root shell must be obtained separately.
 The UI talks to the Rust engine using one JSON request on stdin and JSON Lines
 status/progress events on stdout. Neither the UI nor the backend opens a visible CMD window.
 
+## Ransomware indicator scan
+
+Open **Ransomware scan** in WinUI 3 after connecting the device and verifying an active root shell.
+
+- Uses Android ADB to inspect file **names only** in DCIM, Pictures, Movies, Download, Documents, Music and Android/media.
+- Detects several known ransom-note naming patterns and suspicious encrypted-file extensions, without reading file contents or modifying data.
+- Bounded to 2,500 filenames per available directory; truncated scans and inaccessible directories are reported.
+- Shows low/medium/high heuristic indicator levels and up to 80 matching paths in the UI.
+- **Not an antivirus engine.** An unmatched file can still be malicious, and a match may be harmless. A scan without findings is not proof that the device is safe.
+- No automatic deletion, quarantine, network uploads, or claiming a malware family from filenames.
+- A separate Google Play Protect scan remains useful for detecting potentially harmful Android apps.
+
 ## Security and limits
 
 - Always-elevated applications have greater privileges and risk. A separate elevated

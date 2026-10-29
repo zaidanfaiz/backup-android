@@ -49,6 +49,7 @@ public sealed partial class MainWindow : Window
         OverviewPage.Visibility = tag == "overview" ? Visibility.Visible : Visibility.Collapsed;
         ApplicationsPage.Visibility = tag == "apps" ? Visibility.Visible : Visibility.Collapsed;
         StoragePage.Visibility = tag == "storage" ? Visibility.Visible : Visibility.Collapsed;
+        SecurityPage.Visibility = tag == "security" ? Visibility.Visible : Visibility.Collapsed;
         SetupPage.Visibility = tag == "setup" ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -111,10 +112,66 @@ public sealed partial class MainWindow : Window
             case "verified":
                 Log($"SHA-256 verification passed: {data.GetProperty("count").GetInt32()} artifacts.");
                 break;
+            case "ransomware_scan":
+                ShowRansomwareReport(data.GetProperty("report"));
+                break;
             case "error":
                 Log($"Error: {data.GetProperty("message").GetString()}");
                 break;
         }
+    }
+
+    private void ShowRansomwareReport(JsonElement report)
+    {
+        var risk = report.GetProperty("severity").GetString() ?? "none";
+        var checkedFiles = report.GetProperty("files_examined").GetInt32();
+        var checkedFolders = report.GetProperty("directories_examined").GetInt32();
+        var notes = report.GetProperty("ransom_note_matches").GetInt32();
+        var extensions = report.GetProperty("suspicious_extension_matches").GetInt32();
+        var partial = report.GetProperty("truncated").GetBoolean();
+
+        SecuritySummary.Text = $"Risk indicator: {risk.ToUpperInvariant()}. " +
+            (report.GetProperty("message").GetString() ?? "");
+        SecurityStatistics.Text = $"{checkedFiles} filenames checked across {checkedFolders} folders" +
+            $"  |  {notes} note indicators  |  {extensions} suspicious extensions" +
+            (partial ? "  |  Partial scan" : "");
+
+        SecurityFindings.Items.Clear();
+        foreach (var item in report.GetProperty("findings").EnumerateArray())
+        {
+            var category = item.GetProperty("indicator").GetString() ?? "indicator";
+            var path = item.GetProperty("path").GetString() ?? "";
+            SecurityFindings.Items.Add($"{category}: {path}");
+        }
+
+        foreach (var item in report.GetProperty("warnings").EnumerateArray())
+        {
+            var warning = item.GetString() ?? "";
+            SecurityFindings.Items.Add($"Scan note: {warning}");
+        }
+
+        if (SecurityFindings.Items.Count == 0)
+            SecurityFindings.Items.Add("No matching filenames in scanned folders.");
+        Log($"Ransomware indicator scan completed. Risk: {risk}. Files checked: {checkedFiles}.");
+    }
+
+    private async void Scan_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(SelectedDevice) || !_rootVerified)
+        {
+            Log("Connect your device and verify active temp root before scanning.");
+            return;
+        }
+
+        SecuritySummary.Text = "Scanning Android shared storage...";
+        SecurityStatistics.Text = "";
+        SecurityFindings.Items.Clear();
+        await RunBackendAsync(new
+        {
+            action = "scan_ransomware",
+            adb_path = AdbExecutable,
+            serial = SelectedDevice
+        }, cancellable: true);
     }
 
     private async Task RunBackendAsync(object request, bool cancellable = false)
