@@ -2,7 +2,7 @@
 
 A Windows-native Android backup utility using **WinUI 3** for the interface and **Rust** for the backup engine.
 
-**v0.3.2 preview**: Fixes a WinUI startup crash caused by a missing default theme dictionary, preserves the native launcher, and adds clearly separated Config, Language and Logs folders. Windows UAC remains required.
+**v0.3.3 preview**: Fixes a Windows App startup crash (COMException 0x8000FFFF) caused by reading `Application.Resources` too early in the WinUI 3 constructor. Keeps the v0.3.2 default XAML control-resource registration and organized folders.
 
 ## Features
 
@@ -15,6 +15,14 @@ A Windows-native Android backup utility using **WinUI 3** for the interface and 
 - One-click official Google Platform Tools download and installation into local app data.
 - Driver INF selection and confirmation before elevated Windows PnPUtil installation.
 - Optional link to Microsoft's VC++ Redistributable.
+
+## Startup crash fixed in v0.3.3
+
+One physical-device startup log reported `App.InitializeComponent: System.Runtime.InteropServices.COMException (0x8000FFFF)`. This came from the *diagnostic check* in `App.xaml.cs` that read `Resources.MergedDictionaries` before WinUI had finished application initialization. The check has been removed. The required `XamlControlsResources` entry remains in `App.xaml`.
+
+Windows CI now verifies that the default control-resource dictionary is declared first, prohibits reintroducing the premature C# resource access, and attempts an interactive launch smoke test when its desktop environment permits. A CI build alone does not prove launch works on a user's own Windows installation.
+
+Use a fresh extracted folder when testing. Logs remain in the portable `Logs/` directory when writable, or under `%LOCALAPPDATA%\\AndroidBackup\\Logs/`.
 
 ## Windows download and folder structure
 
