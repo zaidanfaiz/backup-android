@@ -165,12 +165,13 @@ pub fn plan(folder: &Path, device: &Device) -> Result<RestorePlan> {
             data_packages.push(package.clone());
         }
     }
+    let target_matches = verified_target(&manifest, device).is_ok();
     Ok(RestorePlan {
         packages: manifest.selected_packages,
         data_packages,
         android_version: manifest.android_version,
         original_device: manifest.model,
-        target_matches: verified_target(&manifest, device).is_ok(),
+        target_matches,
         artifacts_verified: verified,
         caveats: vec![
             "Only user 0 on the original device and Android version is supported",
