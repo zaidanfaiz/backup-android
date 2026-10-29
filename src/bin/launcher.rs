@@ -15,7 +15,7 @@ mod windows_launcher {
         Foundation::{CloseHandle, GetLastError, WAIT_OBJECT_0},
         System::Threading::{GetExitCodeProcess, WaitForSingleObject},
         UI::{
-            Shell::{ShellExecuteExW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW},
+            Shell::{ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW},
             WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK},
         },
     };
@@ -121,7 +121,7 @@ mod windows_launcher {
         // Windows owns the UAC prompt. Nothing here bypasses elevation.
         let mut info: SHELLEXECUTEINFOW = unsafe { mem::zeroed() };
         info.cbSize = mem::size_of::<SHELLEXECUTEINFOW>() as u32;
-        info.fMask = SEE_MASK_NOCLOSEPROCESS;
+        info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
         info.lpVerb = verb.as_ptr();
         info.lpFile = binary.as_ptr();
         info.lpDirectory = cwd.as_ptr();
