@@ -138,8 +138,36 @@
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnSpacing="14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="App data backup" FontSize="21" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Keep the app and its data together, per package." Opacity="0.72"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="#234F48" CornerRadius="9" Padding="12,6"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="ROOT MODE" Foreground="#AFF0DE" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+                                </Grid>
+                                <TextBlock Text="Backup profile" FontSize="13" Opacity="0.72"/>
+                                <ComboBox x:Name="BackupPreset" SelectionChanged="BackupPreset_Changed"
+                                          SelectedIndex="0" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="Complete app backup: APK + internal data + external files"/>
+                                    <ComboBoxItem Content="App and private data only"/>
+                                    <ComboBoxItem Content="APK only"/>
+                                </ComboBox>
+                                <TextBlock Text="Per-app output: apps / package.name / apk, credential_encrypted.tar, device_encrypted.tar, external_data.tar, obb.tar and media.tar (when present)."
+                                           FontSize="12" Opacity="0.74" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="10">
-                                <TextBlock Text="App backup components" FontSize="18" FontWeight="SemiBold"/>
+                                <TextBlock Text="Advanced backup components" FontSize="18" FontWeight="SemiBold"/>
                                 <TextBlock Text="Choose what to capture for each selected app."
                                            Opacity="0.7" TextWrapping="Wrap"/>
                                 <CheckBox x:Name="ApkCheck" Content="APK + split APKs" IsChecked="True"/>
