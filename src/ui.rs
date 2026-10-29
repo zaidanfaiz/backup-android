@@ -333,7 +333,7 @@ impl BackupApp {
     fn card(ui: &mut egui::Ui, content: impl FnOnce(&mut egui::Ui)) {
         egui::Frame::new()
             .fill(CARD)
-            .stroke(egui::Stroke::new(1.0, BORDER))
+            .stroke(egui::Stroke::new(1.0_f32, BORDER))
             .corner_radius(egui::CornerRadius::same(14))
             .inner_margin(egui::Margin::same(20))
             .show(ui, |ui| {
