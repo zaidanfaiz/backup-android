@@ -2,7 +2,7 @@
 
 A Windows-native Android backup utility using **WinUI 3** for the interface and **Rust** for the backup engine.
 
-**v0.3.4 preview**: Reworked WinUI navigation with explicit vertical scrolling and independent component selection for rooted Android apps. The WinUI frontend and native Rust backup engine remain separate.
+**v0.5.0 preview**: Reworked WinUI navigation with explicit vertical scrolling and independent component selection for rooted Android apps. The WinUI frontend and native Rust backup engine remain separate.
 
 ## Features
 
@@ -88,6 +88,41 @@ The phone's root shell must be obtained separately.
 
 The UI talks to the Rust engine using one JSON request on stdin and JSON Lines
 status/progress events on stdout. Neither the UI nor the backend opens a visible CMD window.
+
+## Restore installed application data (experimental)
+
+The new **Restore app data** page handles the missing second half of the
+backup workflow. It restores archives on **the original, already-rooted phone**:
+
+1. Connect the original Android device, inspect it, and verify root.
+2. Select a completed backup session directory containing `manifest.json`.
+3. Preview available packages and check all SHA-256 digests, target serial,
+   Android release, and backup completeness.
+4. Select one package that is **already installed** on that device.
+   The current base APK and split APKs must match their backed-up SHA-256
+   hashes exactly before any private data is overwritten.
+5. Confirm restore. A new verified safety backup of the app's current APK and
+   data is created first in `Documents/AndroidBackups/restore-safety`.
+6. The restore engine checks each TAR entry, rejects traversal, links and
+   unexpected paths, then stages and restores the selected app's private CE/DE,
+   Android/data, OBB and per-app media archives. It repairs UID/GID and SELinux
+   labels on private app directories with Android `chown` and `restorecon`.
+
+**Limitations:** this strict preview only restores the identical installed APK
+build. App updates, missing APK backups or a different split-APK set block
+restoration. Certificate-aware version migration is future work. The restore
+is an in-place merge, not a transactional file
+replacement. If an operation fails partway through, the safety backup is
+retained and the current application may need manual repair. This is a
+**same-device, same-Android-release, user-0 preview**. It does not reinstall
+APK files, restore a different phone or ROM, or recover hardware-bound
+Android Keystore secrets. The app must already be installed with the correct
+package identity. TAR archives containing symlinks or special entries are
+rejected rather than blindly extracted. No device data is touched by the
+preview step.
+
+The safety snapshot can contain passwords, session data and other private
+information. Protect the entire backup directory. Do not publish it.
 
 ## App data backup workflow
 

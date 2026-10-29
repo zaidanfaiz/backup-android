@@ -214,6 +214,18 @@ impl Adb {
         Ok(())
     }
 
+    /// Stages a verified local backup archive on the Android device without
+    /// opening a command window. The caller must remove this temporary file.
+    pub fn push_file(&self, local: &Path, remote: &str) -> Result<()> {
+        if !local.is_file() || !remote.starts_with("/data/local/tmp/ab-restore-") {
+            bail!("Restore staging requires a local file and a restricted temp path");
+        }
+        let mut cmd = adb_command(&self.binary, Some(&self.serial));
+        cmd.arg("push").arg(local).arg(remote);
+        successful_text(cmd).context("Unable to stage archive on Android")?;
+        Ok(())
+    }
+
     /// Streams binary stdout from adb exec-out into a temporary file.
     /// The destination is published only after a successful exit and fsync.
     pub fn stream_to_file(

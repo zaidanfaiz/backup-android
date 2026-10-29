@@ -5,6 +5,7 @@ mod adb;
 mod backup;
 mod manifest;
 mod ransomware;
+mod restore;
 
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
@@ -23,6 +24,10 @@ struct Request {
     serial: Option<String>,
     destination: Option<PathBuf>,
     folder: Option<PathBuf>,
+    safety_destination: Option<PathBuf>,
+    package: Option<String>,
+    #[serde(default)]
+    confirm: bool,
     #[serde(default)]
     packages: Vec<String>,
     #[serde(default)]
@@ -117,6 +122,43 @@ fn execute(request: Request) -> Result<()> {
             let count = manifest::verify_backup(&folder)?;
             emit(json!({ "type": "verified", "count": count }));
         }
+        "restore_plan" => {
+            let folder = required(request.folder, "folder")?;
+            let serial = required(request.serial, "serial")?;
+            let device = adb::inspect(&request.adb_path, &serial)?;
+            let plan = restore::plan(&folder, &device)?;
+            emit(json!({ "type": "restore_plan", "plan": plan }));
+        }
+        "restore_app" => {
+            let folder = required(request.folder, "folder")?;
+            let serial = required(request.serial, "serial")?;
+            let package = required(request.package, "package")?;
+            let safety = required(request.safety_destination, "safety_destination")?;
+            let device = adb::inspect(&request.adb_path, &serial)?;
+            if device.root.is_none() {
+                bail!("Restoring private app data requires active root on Android");
+            }
+            let cancel = AtomicBool::new(false);
+            let options = restore::RestoreOptions {
+                folder,
+                package,
+                adb_binary: request.adb_path,
+                device,
+                safety_destination: safety,
+                confirm: request.confirm,
+            };
+            let outcome = restore::restore_app(
+                options, &cancel, |progress| match progress {
+                    backup::Progress::Message(message) => {
+                        emit(json!({ "type": "progress", "message": message }));
+                    }
+                    backup::Progress::Transferred { file, bytes } => {
+                        emit(json!({ "type": "transferred", "file": file, "bytes": bytes }));
+                    }
+                }
+            )?;
+            emit(json!({ "type": "restore_complete", "result": outcome }));
+        }
         "scan_ransomware" => {
             let serial = required(request.serial, "serial")?;
             let device = adb::inspect(&request.adb_path, &serial)?;
@@ -130,7 +172,7 @@ fn execute(request: Request) -> Result<()> {
             emit(json!({ "type": "ransomware_scan", "report": report }));
         }
         _ => bail!(
-            "Unsupported action. Valid actions: devices, inspect, backup, verify, scan_ransomware"
+            "Unsupported action. Valid actions: devices, inspect, backup, verify, restore_plan, restore_app, scan_ransomware"
         ),
     }
     Ok(())

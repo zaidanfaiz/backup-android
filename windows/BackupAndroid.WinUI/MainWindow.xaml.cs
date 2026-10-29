@@ -24,6 +24,8 @@ public sealed partial class MainWindow : Window
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(5) };
     private CancellationTokenSource? _activeWork;
     private bool _rootVerified;
+    private bool _restorePlanValidated;
+    private bool _restoreTargetMatches;
     private bool _isBusy;
     private bool _updatingAppList;
     private readonly List<string> _availableApps = new();
@@ -52,7 +54,13 @@ public sealed partial class MainWindow : Window
         try
         {
             if (File.Exists(icon)) appWindow.SetIcon(icon);
-            appWindow.Resize(new Windows.Graphics.SizeInt32(1180, 800));
+            // Fit smaller Windows laptops instead of allowing the command bar
+            // to extend beyond the usable screen and trapping scrolling.
+            var display = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
+            var work = display.WorkArea;
+            var width = Math.Min(1180, Math.Max(640, work.Width - 64));
+            var height = Math.Min(800, Math.Max(480, work.Height - 64));
+            appWindow.Resize(new Windows.Graphics.SizeInt32(width, height));
         }
         catch (Exception error)
         {
@@ -87,6 +95,8 @@ public sealed partial class MainWindow : Window
     private void DeviceSelection_Changed(object sender, SelectionChangedEventArgs e)
     {
         _rootVerified = false;
+        _restorePlanValidated = false;
+        if (RestoreExecuteButton is not null) RestoreExecuteButton.IsEnabled = false;
         _availableApps.Clear();
         _selectedApps.Clear();
         RebuildAppList();
@@ -109,6 +119,7 @@ public sealed partial class MainWindow : Window
                 "apps" => ApplicationsPage,
                 "storage" => StoragePage,
                 "security" => SecurityPage,
+                "restore" => RestorePage,
                 "setup" => SetupPage,
                 _ => throw new InvalidOperationException($"Unknown navigation destination: {tag}")
             };
@@ -140,21 +151,30 @@ public sealed partial class MainWindow : Window
             throw new InvalidOperationException("Complete app backup preset did not enable all components");
 
         Shell.SelectedItem = Shell.MenuItems[0];
-        StartupDiagnostics.Write("UI smoke: navigation, five scroll viewers and app filtering passed.");
+        StartupDiagnostics.Write("UI smoke: navigation, six scroll viewers and app filtering passed.");
         StartupDiagnostics.Write("UI smoke: app data backup presets passed.");
+    }
+
+    private void OpenRestore_Click(object sender, RoutedEventArgs e)
+    {
+        var item = Shell.MenuItems.OfType<NavigationViewItem>()
+            .FirstOrDefault(entry => string.Equals(entry.Tag?.ToString(), "restore", StringComparison.Ordinal));
+        if (item is not null)
+            Shell.SelectedItem = item;
     }
 
     private void OnNavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         // WinUI can raise SelectionChanged while XAML fields are still being created.
         if (OverviewPage is null || ApplicationsPage is null || StoragePage is null
-            || SecurityPage is null || SetupPage is null) return;
+            || SecurityPage is null || SetupPage is null || RestorePage is null) return;
         var tag = (args.SelectedItem as NavigationViewItem)?.Tag?.ToString() ?? "overview";
         StartupDiagnostics.Write($"UI navigation: {tag}");
         OverviewPage.Visibility = tag == "overview" ? Visibility.Visible : Visibility.Collapsed;
         ApplicationsPage.Visibility = tag == "apps" ? Visibility.Visible : Visibility.Collapsed;
         StoragePage.Visibility = tag == "storage" ? Visibility.Visible : Visibility.Collapsed;
         SecurityPage.Visibility = tag == "security" ? Visibility.Visible : Visibility.Collapsed;
+        RestorePage.Visibility = tag == "restore" ? Visibility.Visible : Visibility.Collapsed;
         SetupPage.Visibility = tag == "setup" ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -172,6 +192,8 @@ public sealed partial class MainWindow : Window
         StartButton.IsEnabled = !busy;
         CancelButton.IsEnabled = busy && cancellable;
         WorkProgress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+        if (RestoreExecuteButton is not null)
+            RestoreExecuteButton.IsEnabled = !busy && _rootVerified && _restorePlanValidated && _restoreTargetMatches;
     }
 
     private string SelectedDevice => DeviceCombo.SelectedItem?.ToString() ?? "";
@@ -297,6 +319,14 @@ public sealed partial class MainWindow : Window
                 break;
             case "ransomware_scan":
                 ShowRansomwareReport(data.GetProperty("report"));
+                break;
+            case "restore_plan":
+                ShowRestorePlan(data.GetProperty("plan"));
+                break;
+            case "restore_complete":
+                var result = data.GetProperty("result");
+                RestoreResultText.Text = $"Restored {result.GetProperty("restored_archives").GetInt32()} data archives for {result.GetProperty("package").GetString()}. Safety backup: {result.GetProperty("safety_backup").GetString()}";
+                Log(RestoreResultText.Text);
                 break;
             case "error":
                 Log($"Error: {data.GetProperty("message").GetString()}");
@@ -472,6 +502,104 @@ public sealed partial class MainWindow : Window
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => _activeWork?.Cancel();
+
+    private void ShowRestorePlan(JsonElement plan)
+    {
+        RestorePackageCombo.Items.Clear();
+        foreach (var item in plan.GetProperty("data_packages").EnumerateArray())
+        {
+            var package = item.GetString();
+            if (!string.IsNullOrWhiteSpace(package))
+                RestorePackageCombo.Items.Add(package);
+        }
+
+        if (RestorePackageCombo.Items.Count > 0)
+            RestorePackageCombo.SelectedIndex = 0;
+
+        _restoreTargetMatches = plan.GetProperty("target_matches").GetBoolean();
+        _restorePlanValidated = RestorePackageCombo.Items.Count > 0;
+        var count = plan.GetProperty("artifacts_verified").GetInt32();
+        var original = plan.GetProperty("original_device").GetString() ?? "unknown device";
+        var version = plan.GetProperty("android_version").GetString() ?? "?";
+
+        RestorePreviewText.Text = _restoreTargetMatches
+            ? $"Verified {count} files. Source: {original}, Android {version}. " +
+              $"{RestorePackageCombo.Items.Count} apps contain restorable data. " +
+              "A mandatory safety backup will be created before any overwrite."
+            : $"Verified {count} files, but device identity or Android version differs. " +
+              $"Source: {original}, Android {version}. Restore is blocked.";
+        RestoreResultText.Text = "Review the backup and choose an app before restoring.";
+        RestoreExecuteButton.IsEnabled = _restoreTargetMatches && _restorePlanValidated && _rootVerified && !_isBusy;
+        Log(RestorePreviewText.Text);
+    }
+
+    private async void RestoreBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+        var folder = await PickFolderAsync();
+        if (folder is null) return;
+        RestoreFolderBox.Text = folder;
+        RestorePreviewText.Text = "Backup selected. Check integrity and compatibility.";
+        RestorePackageCombo.Items.Clear();
+        _restorePlanValidated = false;
+        _restoreTargetMatches = false;
+        RestoreExecuteButton.IsEnabled = false;
+    }
+
+    private async void RestorePlan_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy) return;
+        if (string.IsNullOrWhiteSpace(RestoreFolderBox.Text))
+        {
+            Log("Choose a backup session folder containing manifest.json.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(SelectedDevice))
+        {
+            Log("Connect and select your Android device before checking restore compatibility.");
+            return;
+        }
+        _restorePlanValidated = false;
+        RestoreExecuteButton.IsEnabled = false;
+        await RunBackendAsync(new
+        {
+            action = "restore_plan",
+            adb_path = AdbExecutable,
+            serial = SelectedDevice,
+            folder = RestoreFolderBox.Text
+        });
+    }
+
+    private async void RestoreExecute_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy || !_rootVerified || !_restorePlanValidated || !_restoreTargetMatches ||
+            RestorePackageCombo.SelectedItem is not string package)
+        {
+            Log("Restore blocked. Validate the backup and verify root on the original device.");
+            return;
+        }
+        if (!await ConfirmAsync("Restore private app data",
+            $"Restore data into the installed app {package}?\n\n" +
+            "This can overwrite existing app files. Android Keystore-backed " +
+            "secrets may not work after restore. A verified safety backup of " +
+            "the current app will be created first. Continue?"))
+            return;
+
+        var safety = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "AndroidBackups", "restore-safety");
+        RestoreResultText.Text = "Creating safety backup and restoring verified archives...";
+        await RunBackendAsync(new
+        {
+            action = "restore_app",
+            adb_path = AdbExecutable,
+            serial = SelectedDevice,
+            folder = RestoreFolderBox.Text,
+            package,
+            safety_destination = safety,
+            confirm = true
+        }, cancellable: true);
+    }
 
     private async void Verify_Click(object sender, RoutedEventArgs e)
     {
