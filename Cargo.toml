@@ -1,6 +1,6 @@
 [package]
 name = "backup-android"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 rust-version = "1.85"
 description = "Root-aware Android backup engine for the WinUI 3 desktop frontend"
@@ -21,6 +21,7 @@ chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+tar = "0.4"
 
 [build-dependencies]
 winresource = "0.1.34"
