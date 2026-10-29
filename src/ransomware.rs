@@ -108,10 +108,7 @@ fn safe_name(value: &str) -> String {
 
 /// Scan only standard Android shared-storage directories. No app data, file
 /// content or remote network services are accessed.
-pub fn scan_device(
-    adb: &Adb,
-    mut on_progress: impl FnMut(String),
-) -> Result<ScanReport> {
+pub fn scan_device(adb: &Adb, mut on_progress: impl FnMut(String)) -> Result<ScanReport> {
     adb.check_ready()?;
 
     let mut report = ScanReport {
@@ -130,7 +127,9 @@ pub fn scan_device(
     for relative in DIRECTORIES {
         let directory = format!("{ROOT}/{relative}");
         if !adb.directory_exists(&directory)? {
-            report.warnings.push(format!("{relative}: directory does not exist"));
+            report
+                .warnings
+                .push(format!("{relative}: directory does not exist"));
             continue;
         }
         on_progress(format!("Checking {relative}..."));
@@ -145,9 +144,9 @@ pub fn scan_device(
         let output = match adb.root_text(&command) {
             Ok(text) => text,
             Err(error) => {
-                report.warnings.push(format!(
-                    "{relative}: listing failed ({error:#})"
-                ));
+                report
+                    .warnings
+                    .push(format!("{relative}: listing failed ({error:#})"));
                 continue;
             }
         };
@@ -187,8 +186,7 @@ pub fn scan_device(
 
     // A filename alone is not proof of malware. Correlated note and extension
     // indicators merit investigation; neither causes automatic file deletion.
-    report.severity = if report.ransom_note_matches > 0
-        && report.suspicious_extension_matches >= 5
+    report.severity = if report.ransom_note_matches > 0 && report.suspicious_extension_matches >= 5
     {
         Severity::High
     } else if report.ransom_note_matches > 0 || report.suspicious_extension_matches >= 5 {
@@ -205,7 +203,9 @@ pub fn scan_device(
         Severity::None => "No filename indicators were found in the sampled folders; this does not prove the device is clean.",
     };
     if report.directories_examined == 0 {
-        report.warnings.push("No accessible shared-storage directories were checked".to_owned());
+        report
+            .warnings
+            .push("No accessible shared-storage directories were checked".to_owned());
     }
     Ok(report)
 }
@@ -226,7 +226,13 @@ mod tests {
 
     #[test]
     fn does_not_flag_normal_encrypted_files_or_readmes() {
-        for name in ["README.txt", "notes.gpg", "backup.enc", "document.pdf", "photo.jpg"] {
+        for name in [
+            "README.txt",
+            "notes.gpg",
+            "backup.enc",
+            "document.pdf",
+            "photo.jpg",
+        ] {
             assert!(marker(&format!("/storage/emulated/0/{name}")).is_none());
         }
     }
