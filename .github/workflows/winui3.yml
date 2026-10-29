@@ -34,6 +34,10 @@ jobs:
             throw "WinUI default styles must be the first merged App.xaml dictionary"
           }
           Write-Host "XamlControlsResources is registered before app-specific resources"
+          $appCode = Get-Content windows/BackupAndroid.WinUI/App.xaml.cs -Raw
+          if ($appCode -match '(?m)^\s*(?:var\s+\w+\s*=\s*)?Resources\.MergedDictionaries') {
+            throw "Do not access Application.Resources in the App constructor; it can throw 0x8000FFFF"
+          }
 
       - name: Publish WinUI 3 into private application directory
         shell: pwsh
@@ -83,6 +87,45 @@ jobs:
           $portableLog = "$out/Logs/launcher.log"
           if (-not (Test-Path $portableLog)) { throw "Expected portable log mirror missing" }
           Get-Content $portableLog -Tail 5
+
+      - name: Attempt WinUI startup smoke test
+        shell: pwsh
+        run: |
+          # Windows hosted CI has no guaranteed interactive desktop. This check
+          # fails for actual XAML startup exceptions if the process launches,
+          # but reports an unavailable desktop as inconclusive.
+          $exe = "$env:GITHUB_WORKSPACE/dist/AndroidBackup/App/AndroidBackup.exe"
+          $log = Join-Path $env:LOCALAPPDATA "AndroidBackup/Logs/startup.log"
+          if (Test-Path $log) { Remove-Item $log -Force }
+          $p = $null
+          try {
+            try {
+              $p = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru -ErrorAction Stop
+            } catch {
+              Write-Warning "Interactive GUI launch unavailable on CI runner: $_"
+            }
+            if ($null -ne $p) {
+              Start-Sleep -Seconds 6
+              if (Test-Path $log) {
+                $messages = Get-Content $log -Raw
+                Write-Host $messages
+                if ($messages -match 'App\.InitializeComponent:|WinUI window initialization:|Unhandled XAML exception') {
+                  throw "WinUI emitted a startup exception. See log above."
+                }
+                if ($messages -match 'Main window activated\.') {
+                  Write-Host "WinUI interactive startup reached an activated window."
+                } else {
+                  Write-Warning "No activation marker; runner may not support interactive WinUI. Manual PC validation required."
+                }
+              } else {
+                Write-Warning "No WinUI startup log; runner may not expose an interactive desktop."
+              }
+            }
+          } finally {
+            if ($null -ne $p) {
+              Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
 
       - name: Upload complete portable application
         uses: actions/upload-artifact@v4
