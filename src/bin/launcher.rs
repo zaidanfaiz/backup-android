@@ -50,11 +50,11 @@ mod windows_launcher {
         {
             let portable = folder.join("Logs");
             if portable.is_dir() {
-                if let Ok(mut file) = OpenOptions::new()
+                let result = OpenOptions::new()
                     .append(true)
                     .create(true)
-                    .open(portable.join("launcher.log"))
-                {
+                    .open(portable.join("launcher.log"));
+                if let Ok(mut file) = result {
                     let _ = writeln!(file, "{message}");
                 }
             }
