@@ -195,16 +195,32 @@ fn original_owner(adb: &Adb, directory: &str) -> Result<String> {
     Ok(owner.to_owned())
 }
 
+pub struct RestoreOptions {
+    pub folder: PathBuf,
+    pub package: String,
+    pub adb_binary: PathBuf,
+    pub device: Device,
+    pub safety_destination: PathBuf,
+    pub confirm: bool,
+}
+
 pub fn restore_app(
-    folder: &Path,
-    package: &str,
-    adb_binary: PathBuf,
-    device: &Device,
-    safety_destination: &Path,
-    confirm: bool,
+    options: RestoreOptions,
     cancel: &AtomicBool,
     mut progress: impl FnMut(Progress),
 ) -> Result<RestoreResult> {
+    let RestoreOptions {
+        folder,
+        package,
+        adb_binary,
+        device,
+        safety_destination,
+        confirm,
+    } = options;
+    let folder = folder.as_path();
+    let package = package.as_str();
+    let device = &device;
+    let safety_destination = safety_destination.as_path();
     if !confirm {
         bail!("Restore must be explicitly confirmed");
     }
