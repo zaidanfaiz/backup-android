@@ -1,0 +1,57 @@
+name: WinUI 3 Windows desktop
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    name: Build WinUI 3 application
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build Rust backup engine
+        run: cargo build --release --bin backup-android-core
+
+      - name: Publish self-contained WinUI 3 frontend
+        shell: pwsh
+        run: |
+          dotnet publish windows/BackupAndroid.WinUI/BackupAndroid.WinUI.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -o "$env:GITHUB_WORKSPACE/dist/AndroidBackup"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Bundle Rust engine and check output
+        shell: pwsh
+        run: |
+          $out = "$env:GITHUB_WORKSPACE/dist/AndroidBackup"
+          New-Item -ItemType Directory -Force -Path "$out/backend" | Out-Null
+          Copy-Item target/release/backup-android-core.exe "$out/backend/backup-android-core.exe"
+          if (-not (Test-Path "$out/AndroidBackup.exe")) { throw "WinUI executable missing" }
+          if (-not (Test-Path "$out/Assets/icon.ico")) { throw "App icon missing" }
+          if (-not (Test-Path "$out/backend/backup-android-core.exe")) { throw "Rust backend missing" }
+          $manifest = Get-Content windows/BackupAndroid.WinUI/app.manifest -Raw
+          if ($manifest -notmatch 'requestedExecutionLevel level="requireAdministrator"') {
+            throw "UAC declaration missing"
+          }
+
+      - name: Zip complete portable folder
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:GITHUB_WORKSPACE/dist/AndroidBackup" -DestinationPath "$env:GITHUB_WORKSPACE/dist/AndroidBackup-win-x64.zip"
+
+      - name: Upload Windows executable bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-backup-winui3-win-x64
+          path: dist/AndroidBackup-win-x64.zip
+          if-no-files-found: error

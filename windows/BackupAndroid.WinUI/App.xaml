@@ -1,0 +1,29 @@
+<Application
+    x:Class="BackupAndroid.WinUI.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppCanvas" Color="#111A25"/>
+                    <SolidColorBrush x:Key="Surface" Color="#1B2836"/>
+                    <SolidColorBrush x:Key="SurfaceStroke" Color="#334555"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppCanvas" Color="#F5F7F9"/>
+                    <SolidColorBrush x:Key="Surface" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="SurfaceStroke" Color="#D9E1E8"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <Style x:Key="SurfaceCard" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource Surface}"/>
+                <Setter Property="BorderBrush" Value="{ThemeResource SurfaceStroke}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="14"/>
+                <Setter Property="Padding" Value="22"/>
+                <Setter Property="Margin" Value="0,0,0,16"/>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
