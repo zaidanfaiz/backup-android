@@ -345,7 +345,7 @@ public sealed partial class MainWindow : Window
         if (inf is null) return;
         if (!await ConfirmAsync(
             "Install USB driver?",
-            $"Install the selected driver through Windows PnPUtil? Only continue if the INF comes from the correct device manufacturer.\n\n{inf}"))
+            $"Install this driver using Windows PnPUtil?\n\n{inf}"))
             return;
 
         await RunWindowsToolAsync("pnputil.exe", "/add-driver", inf, "/install");
