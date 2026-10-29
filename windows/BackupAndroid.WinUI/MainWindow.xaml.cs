@@ -42,6 +42,7 @@ public sealed partial class MainWindow : Window
             StartupDiagnostics.Write($"Mica backdrop unavailable, using normal background: {error.Message}");
         }
         ActivityList.ItemsSource = _activity;
+        AdbPathBox.Text = FindInstalledAdb();
         DestinationBox.Text = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "AndroidBackups");
 
@@ -59,6 +60,37 @@ public sealed partial class MainWindow : Window
         }
         Shell.SelectedItem = Shell.MenuItems[0];
         Log("WinUI 3 ready. Windows administrator permission was requested at startup.");
+    }
+
+    private static string FindInstalledAdb()
+    {
+        try
+        {
+            var tools = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AndroidBackup", "tools");
+            if (Directory.Exists(tools))
+            {
+                var installed = Directory.GetFiles(tools, "adb.exe", SearchOption.AllDirectories)
+                    .OrderByDescending(File.GetLastWriteTimeUtc)
+                    .FirstOrDefault();
+                if (installed is not null) return installed;
+            }
+        }
+        catch (Exception error)
+        {
+            StartupDiagnostics.Write($"ADB discovery skipped: {error.Message}");
+        }
+        return "adb";
+    }
+
+    private void DeviceSelection_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        _rootVerified = false;
+        _availableApps.Clear();
+        _selectedApps.Clear();
+        RebuildAppList();
+        if (DeviceInfo is not null) DeviceInfo.Text = "Device selected. Check root to load apps.";
     }
 
     private void OnNavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -291,6 +323,9 @@ public sealed partial class MainWindow : Window
     private async void Refresh_Click(object sender, RoutedEventArgs e)
     {
         _rootVerified = false;
+        _availableApps.Clear();
+        _selectedApps.Clear();
+        RebuildAppList();
         await RunBackendAsync(new { action = "devices", adb_path = AdbExecutable });
     }
 
@@ -407,7 +442,14 @@ public sealed partial class MainWindow : Window
             CloseButtonText = "OK",
             DefaultButton = ContentDialogButton.Close
         };
-        await dialog.ShowAsync();
+        try
+        {
+            await dialog.ShowAsync();
+        }
+        catch (Exception error)
+        {
+            StartupDiagnostics.Write($"Could not display informational dialog: {error}");
+        }
     }
 
     private async Task<bool> ConfirmAsync(string title, string body)
@@ -421,7 +463,15 @@ public sealed partial class MainWindow : Window
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close
         };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        try
+        {
+            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        }
+        catch (Exception error)
+        {
+            StartupDiagnostics.Write($"Could not display confirmation dialog: {error}");
+            return false;
+        }
     }
 
     private static void OpenOfficialPage(string url)
