@@ -127,6 +127,27 @@ jobs:
             }
           }
 
+      - name: Exercise native navigation, scrolling and app selection
+        shell: pwsh
+        run: |
+          $exe = "$env:GITHUB_WORKSPACE/dist/AndroidBackup/App/AndroidBackup.exe"
+          $log = Join-Path $env:LOCALAPPDATA "AndroidBackup/Logs/startup.log"
+          if (Test-Path $log) { Remove-Item $log -Force }
+          $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -ArgumentList "--ui-smoke" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) {
+            if (Test-Path $log) { Get-Content $log -Tail 40 }
+            throw "WinUI UI smoke test exited with $($proc.ExitCode)"
+          }
+          if (-not (Test-Path $log)) { throw "WinUI smoke test created no startup log" }
+          $content = Get-Content $log -Raw
+          Write-Host $content
+          if ($content -notmatch 'UI smoke: navigation, five scroll viewers and app filtering passed') {
+            throw "WinUI navigation and scroll smoke marker missing"
+          }
+          if ($content -match 'Unhandled XAML exception|WinUI window initialization:') {
+            throw "WinUI reported an XAML startup error during navigation smoke test"
+          }
+
       - name: Upload complete portable application
         uses: actions/upload-artifact@v4
         with:
