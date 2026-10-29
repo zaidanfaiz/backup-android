@@ -15,7 +15,9 @@ mod windows_launcher {
         Foundation::{CloseHandle, GetLastError, WAIT_OBJECT_0},
         System::Threading::{GetExitCodeProcess, WaitForSingleObject},
         UI::{
-            Shell::{ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW},
+            Shell::{
+                ShellExecuteExW, SEE_MASK_NOASYNC, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
+            },
             WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK},
         },
     };
