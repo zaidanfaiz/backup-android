@@ -54,8 +54,12 @@ jobs:
         shell: pwsh
         run: |
           $out = "$env:GITHUB_WORKSPACE/dist/AndroidBackup"
-          & "$out/AndroidBackup.exe" --check-install
-          if ($LASTEXITCODE -ne 0) { throw "Launcher installation preflight failed" }
+          $check = Start-Process -FilePath "$out/AndroidBackup.exe" -ArgumentList "--check-install" -WorkingDirectory $out -Wait -PassThru
+          if ($check.ExitCode -ne 0) {
+            $log = Join-Path $env:LOCALAPPDATA "AndroidBackup/Logs/launcher.log"
+            if (Test-Path $log) { Get-Content $log -Tail 10 }
+            throw "Launcher installation preflight failed (exit code $($check.ExitCode))"
+          }
           $log = Join-Path $env:LOCALAPPDATA "AndroidBackup/Logs/launcher.log"
           if (-not (Test-Path $log)) { throw "Expected launcher diagnostic log missing" }
           Get-Content $log -Tail 5
