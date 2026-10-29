@@ -139,6 +139,7 @@ public sealed partial class MainWindow : Window
         if (OverviewPage is null || ApplicationsPage is null || StoragePage is null
             || SecurityPage is null || SetupPage is null) return;
         var tag = (args.SelectedItem as NavigationViewItem)?.Tag?.ToString() ?? "overview";
+        StartupDiagnostics.Write($"UI navigation: {tag}");
         OverviewPage.Visibility = tag == "overview" ? Visibility.Visible : Visibility.Collapsed;
         ApplicationsPage.Visibility = tag == "apps" ? Visibility.Visible : Visibility.Collapsed;
         StoragePage.Visibility = tag == "storage" ? Visibility.Visible : Visibility.Collapsed;
@@ -414,6 +415,7 @@ public sealed partial class MainWindow : Window
 
     private async void Backup_Click(object sender, RoutedEventArgs e)
     {
+        StartupDiagnostics.Write($"Backup request: selected apps={_selectedApps.Count}; root verified={_rootVerified}");
         if (!_rootVerified || string.IsNullOrWhiteSpace(SelectedDevice))
         {
             Log("Backup blocked. Connect and verify an active root shell first.");
