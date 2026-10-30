@@ -261,8 +261,12 @@
                                 <TextBlock Text="02  Choose the application" FontSize="18" FontWeight="SemiBold"/>
                                 <TextBlock Text="Restore only app data belonging to a selected installed package."
                                            TextWrapping="Wrap" Opacity="0.72"/>
-                                <ComboBox x:Name="RestorePackageCombo" PlaceholderText="No compatible backup inspected"
-                                          HorizontalAlignment="Stretch"/>
+                                <ComboBox x:Name="RestorePackageCombo" PlaceholderText="Select an application to recover"
+                                          HorizontalAlignment="Stretch" SelectionChanged="RestorePackage_Changed"/>
+                                <Button Content="Check app compatibility" Click="RestorePreflight_Click"
+                                        HorizontalAlignment="Left"/>
+                                <TextBlock x:Name="RestorePreflightText" Text="Select an app and run the compatibility check. No device files are changed."
+                                           TextWrapping="Wrap" Opacity="0.8"/>
                                 <TextBlock Text="Pre-restore safety backups are saved in Documents/AndroidBackups/restore-safety."
                                            TextWrapping="Wrap" Opacity="0.72" FontSize="12"/>
                             </StackPanel>
