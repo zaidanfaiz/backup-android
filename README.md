@@ -2,7 +2,31 @@
 
 A Windows-native Android backup utility using **WinUI 3** for the interface and **Rust** for the backup engine.
 
-**v0.5.0 preview**: Reworked WinUI navigation with explicit vertical scrolling and independent component selection for rooted Android apps. The WinUI frontend and native Rust backup engine remain separate.
+**v0.5.2 preview**: Fluent-inspired WinUI 3 dashboard refresh with theme-aware
+surface cards, a primary Backup/Restore hero, live device/root/selection/backup
+session tiles, consistent typography, a cleaner recovery wizard and footer.
+Status values are tied to actual app state, not demo counters.
+
+## Fluent dashboard refresh (v0.5.2)
+
+The Windows interface is designed around native Windows 11 patterns without
+changing the underlying Rust ADB or restore engine.
+
+- **Overview:** first-class actions to choose apps or open Restore, plus
+  live status for the selected device, temp root, selected apps, and the current
+  backup session. These are real application values, never fabricated statistics.
+- **Applications:** a clearer search/list/preset hierarchy and advanced
+  component selection without losing filtered selections.
+- **Restore:** three numbered stages and theme-aware surfaces. The mandatory
+  compatibility checks and pre-restore safety backup are unchanged.
+- **Security / setup / storage:** unified headings, card spacing, descriptions
+  and Windows theme brushes.
+- **Responsive:** vertically scrolling pages, readable content width, and a
+  compact Windows command footer. Works in both light and dark themes.
+
+The GitHub Actions WinUI smoke test now also checks dashboard state changes
+and quick-action navigation. A green CI build cannot replace a full manual
+usability review on a physical laptop.
 
 ## Features
 
