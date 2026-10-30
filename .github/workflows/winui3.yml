@@ -144,6 +144,9 @@ jobs:
           if ($content -notmatch 'UI smoke: navigation, six scroll viewers and app filtering passed') {
             throw "WinUI navigation and scroll smoke marker missing"
           }
+          if ($content -notmatch 'UI smoke: restore preflight gating passed') {
+            throw "WinUI restore preflight safety test missing"
+          }
           if ($content -notmatch 'UI smoke: app data backup presets passed') {
             throw "WinUI app backup profile smoke marker missing"
           }

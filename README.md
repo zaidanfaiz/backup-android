@@ -89,6 +89,25 @@ The phone's root shell must be obtained separately.
 The UI talks to the Rust engine using one JSON request on stdin and JSON Lines
 status/progress events on stdout. Neither the UI nor the backend opens a visible CMD window.
 
+## v0.5.1: Restore preflight and safer execution
+
+The **Restore app data** page now requires **Check app compatibility** after
+choosing a package. This read-only step verifies the original Android device
+and version, currently installed APK and split APK SHA-256 hashes, app data TAR
+safety, availability of root restore tools, and selected-package integrity.
+The Restore button stays disabled until the selected app passes all checks.
+Switching applications or picking a different backup invalidates the check.
+
+When restore starts, the Windows app **does not offer Cancel** because killing
+the backend during root extraction could leave application files half-written.
+Keep the device connected and the app open until completion. The mandatory
+pre-restore safety backup remains in place. Restore is still experimental and
+has not been validated on a physical rooted test device.
+
+For performance, individual app preflights and final restores reverify only
+the selected package's artifacts instead of hashing every app and media file
+again. The initial backup folder preview still verifies the entire manifest.
+
 ## Restore installed application data (experimental)
 
 The new **Restore app data** page handles the missing second half of the

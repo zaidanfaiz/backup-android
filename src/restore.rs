@@ -15,7 +15,9 @@
 use crate::{
     adb::{shell_quote, valid_package, Adb, Device},
     backup::{run_backup, BackupOptions, Progress},
-    manifest::{verify_backup, Artifact, ArtifactKind, Manifest, FORMAT_VERSION},
+    manifest::{
+        verify_backup, verify_package_artifacts, Artifact, ArtifactKind, Manifest, FORMAT_VERSION,
+    },
 };
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
@@ -34,6 +36,16 @@ pub struct RestorePlan {
     pub target_matches: bool,
     pub artifacts_verified: usize,
     pub caveats: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RestorePreflight {
+    pub package: String,
+    pub verified_files: usize,
+    pub data_archives: usize,
+    pub original_device: String,
+    pub android_version: String,
+    pub safety_backup_required: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -235,6 +247,65 @@ fn original_owner(adb: &Adb, directory: &str) -> Result<String> {
     Ok(owner.to_owned())
 }
 
+/// Read-only, per-app validation. This does not modify Android data. The
+/// destructive restore independently reruns all checks after confirmation.
+pub fn preflight(
+    folder: &Path,
+    package: &str,
+    adb_binary: PathBuf,
+    device: &Device,
+) -> Result<RestorePreflight> {
+    let manifest = load_manifest(folder)?;
+    verified_target(&manifest, device)?;
+    let files = verify_package_artifacts(folder, package)?;
+    let archives = app_archives(&manifest, package)?;
+    if archives.is_empty() {
+        bail!("No backed-up private or external data for the selected app");
+    }
+
+    let adb = Adb::new(adb_binary, device)?;
+    adb.check_ready()?;
+    verify_installed_apks(&adb, &manifest, package)
+        .context("Installed app does not match the backed-up APK build")?;
+    let private_dir = format!("/data/user/0/{package}");
+    if !adb.directory_exists(&private_dir)? {
+        bail!("App private directory is missing. Open the installed app once before restoring");
+    }
+    if archives.iter().any(|archive| archive.is_private) {
+        for binary in ["chown", "restorecon"] {
+            if adb
+                .root_text(&format!("command -v {binary}"))?
+                .trim()
+                .is_empty()
+            {
+                bail!("Device is missing a required restore tool: {binary}");
+            }
+        }
+    }
+
+    for archive in &archives {
+        let target = format!("{}/{}", archive.parent, package);
+        if archive.is_private && !adb.directory_exists(&target)? {
+            bail!("Required private data directory is missing: {target}");
+        }
+        if adb.directory_exists(&target)? {
+            let script = format!("find {} -type l -print | head -n 1", shell_quote(&target));
+            if !adb.root_text(&script)?.trim().is_empty() {
+                bail!("App data contains symlinks; unsafe in-place restore blocked");
+            }
+        }
+        validate_archive(&folder.join(&archive.source.path), package)?;
+    }
+    Ok(RestorePreflight {
+        package: package.to_owned(),
+        verified_files: files,
+        data_archives: archives.len(),
+        original_device: manifest.model,
+        android_version: manifest.android_version,
+        safety_backup_required: true,
+    })
+}
+
 pub struct RestoreOptions {
     pub folder: PathBuf,
     pub package: String,
@@ -265,7 +336,8 @@ pub fn restore_app(
         bail!("Restore must be explicitly confirmed");
     }
     let manifest = load_manifest(folder)?;
-    let verified = verify_backup(folder).context("Backup integrity validation failed")?;
+    let verified = verify_package_artifacts(folder, package)
+        .context("Selected app backup integrity validation failed")?;
     verified_target(&manifest, device)?;
     progress(Progress::Message(format!(
         "Verified {verified} backup artifacts before restore"

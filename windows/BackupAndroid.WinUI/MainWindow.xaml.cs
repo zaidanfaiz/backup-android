@@ -26,6 +26,8 @@ public sealed partial class MainWindow : Window
     private bool _rootVerified;
     private bool _restorePlanValidated;
     private bool _restoreTargetMatches;
+    private bool _restorePreflightReady;
+    private string? _preflightPackage;
     private bool _isBusy;
     private bool _updatingAppList;
     private readonly List<string> _availableApps = new();
@@ -96,6 +98,8 @@ public sealed partial class MainWindow : Window
     {
         _rootVerified = false;
         _restorePlanValidated = false;
+        _restorePreflightReady = false;
+        _preflightPackage = null;
         if (RestoreExecuteButton is not null) RestoreExecuteButton.IsEnabled = false;
         _availableApps.Clear();
         _selectedApps.Clear();
@@ -150,7 +154,33 @@ public sealed partial class MainWindow : Window
             || AppMediaCheck.IsChecked != true)
             throw new InvalidOperationException("Complete app backup preset did not enable all components");
 
+        // Restore must remain locked until the chosen app passes preflight.
+        RestorePackageCombo.Items.Clear();
+        RestorePackageCombo.Items.Add("com.example.photos");
+        RestorePackageCombo.Items.Add("com.example.notes");
+        RestorePackageCombo.SelectedIndex = 0;
+        _rootVerified = true;
+        _restorePlanValidated = true;
+        _restoreTargetMatches = true;
+        if (RestoreExecuteButton.IsEnabled)
+            throw new InvalidOperationException("Restore enabled before per-app preflight");
+        using (var report = JsonDocument.Parse(
+            "{\"package\":\"com.example.photos\",\"verified_files\":3,\"data_archives\":2}"))
+            ShowRestorePreflight(report.RootElement);
+        if (!RestoreExecuteButton.IsEnabled)
+            throw new InvalidOperationException("Restore still disabled after successful preflight");
+        RestorePackageCombo.SelectedIndex = 1;
+        if (RestoreExecuteButton.IsEnabled)
+            throw new InvalidOperationException("Restore remained enabled after switching packages");
+        _rootVerified = false;
+        _restorePlanValidated = false;
+        _restoreTargetMatches = false;
+        _restorePreflightReady = false;
+        _preflightPackage = null;
+        RestorePackageCombo.Items.Clear();
+
         Shell.SelectedItem = Shell.MenuItems[0];
+        StartupDiagnostics.Write("UI smoke: restore preflight gating passed.");
         StartupDiagnostics.Write("UI smoke: navigation, six scroll viewers and app filtering passed.");
         StartupDiagnostics.Write("UI smoke: app data backup presets passed.");
     }
@@ -193,7 +223,9 @@ public sealed partial class MainWindow : Window
         CancelButton.IsEnabled = busy && cancellable;
         WorkProgress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         if (RestoreExecuteButton is not null)
-            RestoreExecuteButton.IsEnabled = !busy && _rootVerified && _restorePlanValidated && _restoreTargetMatches;
+            RestoreExecuteButton.IsEnabled = !busy && _rootVerified && _restorePlanValidated
+                && _restoreTargetMatches && _restorePreflightReady
+                && _preflightPackage == RestorePackageCombo.SelectedItem?.ToString();
     }
 
     private string SelectedDevice => DeviceCombo.SelectedItem?.ToString() ?? "";
@@ -323,7 +355,13 @@ public sealed partial class MainWindow : Window
             case "restore_plan":
                 ShowRestorePlan(data.GetProperty("plan"));
                 break;
+            case "restore_preflight":
+                ShowRestorePreflight(data.GetProperty("report"));
+                break;
             case "restore_complete":
+                _restorePreflightReady = false;
+                _preflightPackage = null;
+                RestoreExecuteButton.IsEnabled = false;
                 var result = data.GetProperty("result");
                 RestoreResultText.Text = $"Restored {result.GetProperty("restored_archives").GetInt32()} data archives for {result.GetProperty("package").GetString()}. Safety backup: {result.GetProperty("safety_backup").GetString()}";
                 Log(RestoreResultText.Text);
@@ -505,6 +543,9 @@ public sealed partial class MainWindow : Window
 
     private void ShowRestorePlan(JsonElement plan)
     {
+        _restorePreflightReady = false;
+        _preflightPackage = null;
+        RestoreExecuteButton.IsEnabled = false;
         RestorePackageCombo.Items.Clear();
         foreach (var item in plan.GetProperty("data_packages").EnumerateArray())
         {
@@ -529,7 +570,8 @@ public sealed partial class MainWindow : Window
             : $"Verified {count} files, but device identity or Android version differs. " +
               $"Source: {original}, Android {version}. Restore is blocked.";
         RestoreResultText.Text = "Review the backup and choose an app before restoring.";
-        RestoreExecuteButton.IsEnabled = _restoreTargetMatches && _restorePlanValidated && _rootVerified && !_isBusy;
+        RestorePreflightText.Text = "Select an app and check its installed APK, files and device requirements.";
+        RestoreExecuteButton.IsEnabled = false;
         Log(RestorePreviewText.Text);
     }
 
@@ -541,7 +583,10 @@ public sealed partial class MainWindow : Window
         RestoreFolderBox.Text = folder;
         RestorePreviewText.Text = "Backup selected. Check integrity and compatibility.";
         RestorePackageCombo.Items.Clear();
+        RestorePreflightText.Text = "Select an app and check compatibility again.";
         _restorePlanValidated = false;
+        _restorePreflightReady = false;
+        _preflightPackage = null;
         _restoreTargetMatches = false;
         RestoreExecuteButton.IsEnabled = false;
     }
@@ -560,6 +605,8 @@ public sealed partial class MainWindow : Window
             return;
         }
         _restorePlanValidated = false;
+        _restorePreflightReady = false;
+        _preflightPackage = null;
         RestoreExecuteButton.IsEnabled = false;
         await RunBackendAsync(new
         {
@@ -570,10 +617,62 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    private void RestorePackage_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        _restorePreflightReady = false;
+        _preflightPackage = null;
+        if (RestoreExecuteButton is not null) RestoreExecuteButton.IsEnabled = false;
+        if (RestorePreflightText is not null)
+            RestorePreflightText.Text = "App selection changed. Run the read-only app compatibility check.";
+    }
+
+    private void ShowRestorePreflight(JsonElement report)
+    {
+        var package = report.GetProperty("package").GetString() ?? "";
+        if (package != RestorePackageCombo.SelectedItem?.ToString())
+        {
+            Log("Preflight completed for a different app. Run the check again.");
+            return;
+        }
+        _restorePreflightReady = true;
+        _preflightPackage = package;
+        var verified = report.GetProperty("verified_files").GetInt32();
+        var archives = report.GetProperty("data_archives").GetInt32();
+        RestorePreflightText.Text = $"Ready for {package}: {verified} files verified, " +
+            $"{archives} data archives validated, installed APK and root checked. " +
+            "A safety backup will be created before any changes.";
+        RestoreExecuteButton.IsEnabled = !_isBusy && _rootVerified &&
+            _restorePlanValidated && _restoreTargetMatches;
+        Log(RestorePreflightText.Text);
+    }
+
+    private async void RestorePreflight_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy || !_restorePlanValidated || !_restoreTargetMatches ||
+            !_rootVerified || RestorePackageCombo.SelectedItem is not string package)
+        {
+            Log("Select a verified backup, active root device and application first.");
+            return;
+        }
+        _restorePreflightReady = false;
+        _preflightPackage = null;
+        RestoreExecuteButton.IsEnabled = false;
+        RestorePreflightText.Text = "Checking installed APK, archive paths and Android restore tools...";
+        await RunBackendAsync(new
+        {
+            action = "restore_preflight",
+            adb_path = AdbExecutable,
+            serial = SelectedDevice,
+            folder = RestoreFolderBox.Text,
+            package
+        });
+    }
+
     private async void RestoreExecute_Click(object sender, RoutedEventArgs e)
     {
         if (_isBusy || !_rootVerified || !_restorePlanValidated || !_restoreTargetMatches ||
-            RestorePackageCombo.SelectedItem is not string package)
+            !_restorePreflightReady || RestorePackageCombo.SelectedItem is not string package ||
+            _preflightPackage != package)
         {
             Log("Restore blocked. Validate the backup and verify root on the original device.");
             return;
@@ -588,7 +687,8 @@ public sealed partial class MainWindow : Window
         var safety = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "AndroidBackups", "restore-safety");
-        RestoreResultText.Text = "Creating safety backup and restoring verified archives...";
+        RestoreResultText.Text = "Creating safety backup, then restoring data. " +
+            "Do not disconnect the device or close the app until it finishes.";
         await RunBackendAsync(new
         {
             action = "restore_app",
@@ -598,7 +698,7 @@ public sealed partial class MainWindow : Window
             package,
             safety_destination = safety,
             confirm = true
-        }, cancellable: true);
+        }, cancellable: false); // Killing the engine mid-extraction can corrupt app data.
     }
 
     private async void Verify_Click(object sender, RoutedEventArgs e)

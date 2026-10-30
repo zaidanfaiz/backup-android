@@ -129,6 +129,14 @@ fn execute(request: Request) -> Result<()> {
             let plan = restore::plan(&folder, &device)?;
             emit(json!({ "type": "restore_plan", "plan": plan }));
         }
+        "restore_preflight" => {
+            let folder = required(request.folder, "folder")?;
+            let serial = required(request.serial, "serial")?;
+            let package = required(request.package, "package")?;
+            let device = adb::inspect(&request.adb_path, &serial)?;
+            let report = restore::preflight(&folder, &package, request.adb_path, &device)?;
+            emit(json!({ "type": "restore_preflight", "report": report }));
+        }
         "restore_app" => {
             let folder = required(request.folder, "folder")?;
             let serial = required(request.serial, "serial")?;
@@ -172,7 +180,7 @@ fn execute(request: Request) -> Result<()> {
             emit(json!({ "type": "ransomware_scan", "report": report }));
         }
         _ => bail!(
-            "Unsupported action. Valid actions: devices, inspect, backup, verify, restore_plan, restore_app, scan_ransomware"
+            "Unsupported action. Valid actions: devices, inspect, backup, verify, restore_plan, restore_preflight, restore_app, scan_ransomware"
         ),
     }
     Ok(())
