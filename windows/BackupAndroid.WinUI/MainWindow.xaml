@@ -56,6 +56,7 @@
                 <NavigationViewItem Content="Restore app data" Tag="restore">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Refresh"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItemSeparator/>
                 <NavigationViewItem Content="Ransomware scan" Tag="security">
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Find"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
@@ -126,7 +127,7 @@
                             <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SurfaceCard}" Margin="0">
                                 <StackPanel Spacing="9">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <SymbolIcon Symbol="Shield" Foreground="{ThemeResource MutedText}"/>
+                                        <SymbolIcon Symbol="ProtectedDocument" Foreground="{ThemeResource MutedText}"/>
                                         <TextBlock Text="ROOT STATUS" FontSize="11" FontWeight="SemiBold"
                                                    Foreground="{ThemeResource MutedText}"/>
                                     </StackPanel>
@@ -224,10 +225,10 @@
                 <ScrollViewer x:Name="ApplicationsPage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                               VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
                               HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
-                    <StackPanel MaxWidth="920" Spacing="12">
-                        <TextBlock Text="Applications" FontSize="26" FontWeight="SemiBold"/>
-                        <TextBlock Text="Choose apps and the backup components to include. Root is required for private app data."
-                                   Opacity="0.7" TextWrapping="Wrap"/>
+                    <StackPanel MaxWidth="1080" Spacing="12">
+                        <TextBlock Text="Applications" Style="{StaticResource PageHeading}"/>
+                        <TextBlock Text="Build a complete backup from installed apps, data and the components you need."
+                                   Style="{StaticResource SectionDescription}"/>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
                                 <StackPanel Orientation="Horizontal" Spacing="10">
@@ -236,9 +237,9 @@
                                     <TextBlock x:Name="AppCount" Text="Inspect a device to load apps"
                                                VerticalAlignment="Center" Opacity="0.7"/>
                                 </StackPanel>
-                                <TextBox x:Name="AppSearchBox" PlaceholderText="Search package name"
-                                         TextChanged="AppSearch_TextChanged"/>
-                                <ListView x:Name="ApplicationChoices" Height="300" SelectionMode="Multiple"
+                                <TextBox x:Name="AppSearchBox" PlaceholderText="Search installed packages"
+                                         TextChanged="AppSearch_TextChanged" MinHeight="38"/>
+                                <ListView x:Name="ApplicationChoices" Height="330" SelectionMode="Multiple"
                                           SelectionChanged="Applications_SelectionChanged"/>
                                 <TextBlock Text="Selected apps are preserved when filtering this list."
                                            FontSize="12" Opacity="0.72" TextWrapping="Wrap"/>
@@ -252,16 +253,17 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="App data backup" FontSize="21" FontWeight="SemiBold"/>
-                                        <TextBlock Text="Keep the app and its data together, per package." Opacity="0.72"
-                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="Backup profile" Style="{StaticResource SectionHeading}"/>
+                                        <TextBlock Text="Pick a preset, then fine-tune individual components below."
+                                                   Style="{StaticResource SectionDescription}"/>
                                     </StackPanel>
-                                    <Border Grid.Column="1" Background="#234F48" CornerRadius="9" Padding="12,6"
+                                    <Border Grid.Column="1" Background="{ThemeResource AccentWash}" CornerRadius="10" Padding="12,7"
                                             VerticalAlignment="Center">
-                                        <TextBlock Text="ROOT MODE" Foreground="#AFF0DE" FontSize="11" FontWeight="SemiBold"/>
+                                        <TextBlock Text="TEMP ROOT" Foreground="{ThemeResource MutedText}" FontSize="11" FontWeight="SemiBold"/>
                                     </Border>
                                 </Grid>
-                                <TextBlock Text="Backup profile" FontSize="13" Opacity="0.72"/>
+                                <TextBlock Text="SELECT A PRESET" FontSize="11" CharacterSpacing="1"
+                                           Foreground="{ThemeResource MutedText}"/>
                                 <ComboBox x:Name="BackupPreset" SelectionChanged="BackupPreset_Changed"
                                           SelectedIndex="0" HorizontalAlignment="Stretch">
                                     <ComboBoxItem Content="Complete app backup: APK + internal data + external files"/>
@@ -274,7 +276,7 @@
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="10">
-                                <TextBlock Text="Advanced backup components" FontSize="18" FontWeight="SemiBold"/>
+                                <TextBlock Text="Backup components" Style="{StaticResource SectionHeading}"/>
                                 <TextBlock Text="Choose what to capture for each selected app."
                                            Opacity="0.7" TextWrapping="Wrap"/>
                                 <CheckBox x:Name="ApkCheck" Content="APK + split APKs" IsChecked="True"/>
@@ -292,13 +294,13 @@
                 <ScrollViewer x:Name="StoragePage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                               VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
                               HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
-                    <StackPanel MaxWidth="920" Spacing="14">
-                        <TextBlock Text="Photos &amp; files" FontSize="26" FontWeight="SemiBold"/>
-                        <TextBlock Text="Select shared-storage categories to include in this backup."
-                                   Opacity="0.7" TextWrapping="Wrap"/>
+                    <StackPanel MaxWidth="1080" Spacing="14">
+                        <TextBlock Text="Photos &amp; files" Style="{StaticResource PageHeading}"/>
+                        <TextBlock Text="Choose folders from Android shared storage. App-private data is configured separately."
+                                   Style="{StaticResource SectionDescription}"/>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
-                                <TextBlock Text="Shared storage" FontSize="19" FontWeight="SemiBold"/>
+                                <TextBlock Text="Shared folders" Style="{StaticResource SectionHeading}"/>
                                 <CheckBox x:Name="DcimCheck" Content="Camera  /  DCIM" IsChecked="True"/>
                                 <CheckBox x:Name="PicturesCheck" Content="Pictures" IsChecked="True"/>
                                 <CheckBox x:Name="MoviesCheck" Content="Videos  /  Movies" IsChecked="True"/>
@@ -320,28 +322,28 @@
                               VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
                               HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
                               Visibility="Collapsed">
-                    <StackPanel Spacing="14" MaxWidth="920" HorizontalAlignment="Stretch">
-                        <TextBlock Text="Restore app data" FontSize="28" FontWeight="SemiBold"/>
-                        <TextBlock Text="Recover an installed app's local data from a verified Android Backup archive."
-                                   Opacity="0.74" TextWrapping="Wrap"/>
-                        <Border Background="#1E5148" CornerRadius="14" Padding="20" Margin="0,2,0,8">
+                    <StackPanel Spacing="14" MaxWidth="1080" HorizontalAlignment="Stretch">
+                        <TextBlock Text="Restore app data" Style="{StaticResource PageHeading}"/>
+                        <TextBlock Text="A guided recovery with verification, compatibility checks and a safety snapshot."
+                                   Style="{StaticResource SectionDescription}"/>
+                        <Border Background="{ThemeResource HeroSurface}" BorderBrush="{ThemeResource SurfaceStroke}"
+                                BorderThickness="1" CornerRadius="18" Padding="22" Margin="0,4,0,8">
                             <Grid ColumnSpacing="16">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Spacing="7">
-                                    <TextBlock Text="Recover with a safety snapshot" FontSize="18"
-                                               Foreground="#C4F4E9" FontWeight="SemiBold"/>
-                                    <TextBlock Text="First verify hashes and device compatibility. Before restoring, make another backup of the current app."
-                                               TextWrapping="Wrap" Foreground="#E0F0EB"/>
+                                    <TextBlock Text="Recover with a safety snapshot" Style="{StaticResource SectionHeading}"/>
+                                    <TextBlock Text="Verify the backup and target device. A fresh safety backup is required before files are changed."
+                                               Style="{StaticResource SectionDescription}"/>
                                 </StackPanel>
-                                <SymbolIcon Grid.Column="1" Symbol="Refresh" Foreground="#B7EFDE"/>
+                                <SymbolIcon Grid.Column="1" Symbol="Refresh" Foreground="{ThemeResource MutedText}"/>
                             </Grid>
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
-                                <TextBlock Text="01  Select an existing backup" FontSize="18" FontWeight="SemiBold"/>
+                                <TextBlock Text="01  Choose a backup" Style="{StaticResource SectionHeading}"/>
                                 <TextBlock Text="Choose the folder containing manifest.json and apps."
                                            TextWrapping="Wrap" Opacity="0.72"/>
                                 <Grid ColumnSpacing="10">
@@ -361,7 +363,7 @@
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
-                                <TextBlock Text="02  Choose the application" FontSize="18" FontWeight="SemiBold"/>
+                                <TextBlock Text="02  Verify the application" Style="{StaticResource SectionHeading}"/>
                                 <TextBlock Text="Restore only app data belonging to a selected installed package."
                                            TextWrapping="Wrap" Opacity="0.72"/>
                                 <ComboBox x:Name="RestorePackageCombo" PlaceholderText="Select an application to recover"
@@ -376,7 +378,7 @@
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
-                                <TextBlock Text="03  Restore safely" FontSize="18" FontWeight="SemiBold"/>
+                                <TextBlock Text="03  Restore safely" Style="{StaticResource SectionHeading}"/>
                                 <InfoBar Severity="Warning" IsOpen="True" IsClosable="False"
                                          Title="Restoring can replace existing app data"
                                          Message="Requires the original device, Android version, user 0, and an installed APK build whose SHA-256 matches the backup. This preview never silently reinstalls apps."/>
@@ -394,10 +396,10 @@
                 <ScrollViewer x:Name="SecurityPage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                               VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
                               HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
-                    <StackPanel MaxWidth="920" Spacing="14">
-                        <TextBlock Text="Ransomware scan" FontSize="26" FontWeight="SemiBold"/>
-                        <TextBlock Text="Read-only investigation of suspicious filenames in Android shared storage."
-                                   Opacity="0.7" TextWrapping="Wrap"/>
+                    <StackPanel MaxWidth="1080" Spacing="14">
+                        <TextBlock Text="Ransomware scan" Style="{StaticResource PageHeading}"/>
+                        <TextBlock Text="Review suspicious filenames without changing or uploading your personal files."
+                                   Style="{StaticResource SectionDescription}"/>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
                                 <TextBlock Text="Scan connected Android" FontSize="19" FontWeight="SemiBold"/>
@@ -423,10 +425,10 @@
                 <ScrollViewer x:Name="SetupPage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                               VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
                               HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
-                    <StackPanel MaxWidth="920" Spacing="12">
-                        <TextBlock Text="Setup &amp; drivers" FontSize="26" FontWeight="SemiBold"/>
-                        <TextBlock Text="Set up ADB, Android USB drivers, and optional Windows components."
-                                   Opacity="0.7" TextWrapping="Wrap"/>
+                    <StackPanel MaxWidth="1080" Spacing="12">
+                        <TextBlock Text="Setup &amp; drivers" Style="{StaticResource PageHeading}"/>
+                        <TextBlock Text="Manage Android Platform Tools, USB drivers and local Windows dependencies."
+                                   Style="{StaticResource SectionDescription}"/>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
                                 <TextBlock Text="Android Platform Tools" FontSize="19" FontWeight="SemiBold"/>
@@ -465,17 +467,19 @@
             </Grid>
         </NavigationView>
 
-        <Grid Grid.Row="2" Background="{ThemeResource Surface}" Padding="18,10" ColumnSpacing="12">
+        <Grid Grid.Row="2" Background="{ThemeResource Surface}" Padding="24,12"
+              BorderBrush="{ThemeResource SurfaceStroke}" BorderThickness="0,1,0,0"
+              ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Button x:Name="StartButton" Content="Backup selected apps &amp; files" Click="Backup_Click" Style="{StaticResource AccentButtonStyle}"/>
+            <Button x:Name="StartButton" Content="Start backup" Click="Backup_Click" Style="{StaticResource AccentButtonStyle}"/>
             <Button x:Name="CancelButton" Grid.Column="1" Content="Cancel" Click="Cancel_Click"
                     IsEnabled="False"/>
-            <Button Grid.Column="2" Content="Verify backup" Click="Verify_Click"/>
+            <Button Grid.Column="2" Content="Verify archive" Click="Verify_Click"/>
             <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="4">
                 <ProgressBar x:Name="WorkProgress" IsIndeterminate="True" Visibility="Collapsed"/>
                 <TextBlock x:Name="FooterText" Text="Connect a device to begin"
