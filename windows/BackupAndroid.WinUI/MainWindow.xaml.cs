@@ -154,7 +154,33 @@ public sealed partial class MainWindow : Window
             || AppMediaCheck.IsChecked != true)
             throw new InvalidOperationException("Complete app backup preset did not enable all components");
 
+        // Restore must remain locked until the chosen app passes preflight.
+        RestorePackageCombo.Items.Clear();
+        RestorePackageCombo.Items.Add("com.example.photos");
+        RestorePackageCombo.Items.Add("com.example.notes");
+        RestorePackageCombo.SelectedIndex = 0;
+        _rootVerified = true;
+        _restorePlanValidated = true;
+        _restoreTargetMatches = true;
+        if (RestoreExecuteButton.IsEnabled)
+            throw new InvalidOperationException("Restore enabled before per-app preflight");
+        using (var report = JsonDocument.Parse(
+            "{\"package\":\"com.example.photos\",\"verified_files\":3,\"data_archives\":2}"))
+            ShowRestorePreflight(report.RootElement);
+        if (!RestoreExecuteButton.IsEnabled)
+            throw new InvalidOperationException("Restore still disabled after successful preflight");
+        RestorePackageCombo.SelectedIndex = 1;
+        if (RestoreExecuteButton.IsEnabled)
+            throw new InvalidOperationException("Restore remained enabled after switching packages");
+        _rootVerified = false;
+        _restorePlanValidated = false;
+        _restoreTargetMatches = false;
+        _restorePreflightReady = false;
+        _preflightPackage = null;
+        RestorePackageCombo.Items.Clear();
+
         Shell.SelectedItem = Shell.MenuItems[0];
+        StartupDiagnostics.Write("UI smoke: restore preflight gating passed.");
         StartupDiagnostics.Write("UI smoke: navigation, six scroll viewers and app filtering passed.");
         StartupDiagnostics.Write("UI smoke: app data backup presets passed.");
     }
