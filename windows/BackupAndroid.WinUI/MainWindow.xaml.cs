@@ -135,6 +135,13 @@ public sealed partial class MainWindow : Window
                 throw new InvalidOperationException($"Navigation or vertical scrolling failed on page '{tag}'");
         }
 
+        OpenPage("apps");
+        if (ApplicationsPage.Visibility != Visibility.Visible)
+            throw new InvalidOperationException("Overview quick action does not navigate to apps");
+        OpenPage("restore");
+        if (RestorePage.Visibility != Visibility.Visible)
+            throw new InvalidOperationException("Overview quick action does not navigate to restore");
+
         _availableApps.Clear();
         _selectedApps.Clear();
         _availableApps.AddRange(new[] { "com.example.photos", "org.example.notes", "com.example.music" });
@@ -147,6 +154,8 @@ public sealed partial class MainWindow : Window
         RebuildAppList();
         if (ApplicationChoices.Items.Count != 3)
             throw new InvalidOperationException("App filtering could not be restored");
+        if (OverviewAppsValue.Text != "3 selected")
+            throw new InvalidOperationException("Dashboard app counter did not reflect selections");
 
         // Validate that backup presets actually change the selected components.
         BackupPreset.SelectedIndex = 2;
@@ -164,6 +173,9 @@ public sealed partial class MainWindow : Window
         RestorePackageCombo.Items.Add("com.example.notes");
         RestorePackageCombo.SelectedIndex = 0;
         _rootVerified = true;
+        UpdateDashboardStatus();
+        if (OverviewRootValue.Text != "Active" || HeaderStatusText.Text != "Temp root active")
+            throw new InvalidOperationException("Dashboard root status does not reflect verified root");
         _restorePlanValidated = true;
         _restoreTargetMatches = true;
         if (RestoreExecuteButton.IsEnabled)
@@ -184,6 +196,10 @@ public sealed partial class MainWindow : Window
         RestorePackageCombo.Items.Clear();
 
         Shell.SelectedItem = Shell.MenuItems[0];
+        UpdateDashboardStatus();
+        if (OverviewRootValue.Text == "Active")
+            throw new InvalidOperationException("Dashboard root status did not reset");
+        StartupDiagnostics.Write("UI smoke: Fluent dashboard and quick actions passed.");
         StartupDiagnostics.Write("UI smoke: restore preflight gating passed.");
         StartupDiagnostics.Write("UI smoke: navigation, six scroll viewers and app filtering passed.");
         StartupDiagnostics.Write("UI smoke: app data backup presets passed.");
