@@ -15,7 +15,9 @@
 use crate::{
     adb::{shell_quote, valid_package, Adb, Device},
     backup::{run_backup, BackupOptions, Progress},
-    manifest::{verify_backup, verify_package_artifacts, Artifact, ArtifactKind, Manifest, FORMAT_VERSION},
+    manifest::{
+        verify_backup, verify_package_artifacts, Artifact, ArtifactKind, Manifest, FORMAT_VERSION,
+    },
 };
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
@@ -271,7 +273,11 @@ pub fn preflight(
     }
     if archives.iter().any(|archive| archive.is_private) {
         for binary in ["chown", "restorecon"] {
-            if adb.root_text(&format!("command -v {binary}"))?.trim().is_empty() {
+            if adb
+                .root_text(&format!("command -v {binary}"))?
+                .trim()
+                .is_empty()
+            {
                 bail!("Device is missing a required restore tool: {binary}");
             }
         }
