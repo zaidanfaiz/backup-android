@@ -30,6 +30,8 @@ public sealed partial class MainWindow : Window
     private string? _preflightPackage;
     private bool _isBusy;
     private bool _updatingAppList;
+    private string _inspectedDeviceModel = string.Empty;
+    private string _sessionBackupStatus = "Not started";
     private readonly List<string> _availableApps = new();
     private readonly HashSet<string> _selectedApps = new(StringComparer.Ordinal);
 
@@ -105,6 +107,8 @@ public sealed partial class MainWindow : Window
         _selectedApps.Clear();
         RebuildAppList();
         if (DeviceInfo is not null) DeviceInfo.Text = "Device selected. Check root to load apps.";
+        _inspectedDeviceModel = string.Empty;
+        UpdateDashboardStatus();
     }
 
     /// <summary>
@@ -185,12 +189,39 @@ public sealed partial class MainWindow : Window
         StartupDiagnostics.Write("UI smoke: app data backup presets passed.");
     }
 
-    private void OpenRestore_Click(object sender, RoutedEventArgs e)
+    private void OpenPage(string tag)
     {
         var item = Shell.MenuItems.OfType<NavigationViewItem>()
-            .FirstOrDefault(entry => string.Equals(entry.Tag?.ToString(), "restore", StringComparison.Ordinal));
+            .FirstOrDefault(entry => string.Equals(entry.Tag?.ToString(), tag, StringComparison.Ordinal));
         if (item is not null)
             Shell.SelectedItem = item;
+    }
+
+    private void OpenRestore_Click(object sender, RoutedEventArgs e) => OpenPage("restore");
+    private void OpenApplications_Click(object sender, RoutedEventArgs e) => OpenPage("apps");
+
+    private void UpdateDashboardStatus()
+    {
+        // The metrics deliberately reflect current session state, not fake usage statistics.
+        if (OverviewDeviceValue is null || OverviewRootValue is null ||
+            OverviewAppsValue is null || OverviewBackupValue is null ||
+            HeaderStatusText is null)
+            return;
+
+        var serial = SelectedDevice;
+        OverviewDeviceValue.Text = string.IsNullOrWhiteSpace(serial)
+            ? "Not connected"
+            : (string.IsNullOrWhiteSpace(_inspectedDeviceModel) ? serial : _inspectedDeviceModel);
+        OverviewRootValue.Text = _rootVerified ? "Active" : "Not verified";
+        OverviewAppsValue.Text = $"{_selectedApps.Count} selected";
+        OverviewBackupValue.Text = _sessionBackupStatus;
+        HeaderStatusText.Text = _isBusy
+            ? "Operation running"
+            : _rootVerified
+                ? "Temp root active"
+                : string.IsNullOrWhiteSpace(serial)
+                    ? "Waiting for Android"
+                    : "Root not verified";
     }
 
     private void OnNavigationChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -214,6 +245,7 @@ public sealed partial class MainWindow : Window
         _activity.Insert(0, $"{DateTime.Now:HH:mm:ss}  {message}");
         while (_activity.Count > 120) _activity.RemoveAt(_activity.Count - 1);
         FooterText.Text = message;
+        UpdateDashboardStatus();
     }
 
     private void SetBusy(bool busy, bool cancellable = false)
@@ -222,6 +254,7 @@ public sealed partial class MainWindow : Window
         StartButton.IsEnabled = !busy;
         CancelButton.IsEnabled = busy && cancellable;
         WorkProgress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+        UpdateDashboardStatus();
         if (RestoreExecuteButton is not null)
             RestoreExecuteButton.IsEnabled = !busy && _rootVerified && _restorePlanValidated
                 && _restoreTargetMatches && _restorePreflightReady
@@ -249,6 +282,7 @@ public sealed partial class MainWindow : Window
                     ApplicationChoices.SelectedItems.Add(package);
             }
             AppCount.Text = $"{_selectedApps.Count} selected / {_availableApps.Count} installed";
+            UpdateDashboardStatus();
         }
         finally
         {
@@ -299,6 +333,7 @@ public sealed partial class MainWindow : Window
         foreach (var item in args.AddedItems.OfType<string>())
             _selectedApps.Add(item);
         AppCount.Text = $"{_selectedApps.Count} selected / {_availableApps.Count} installed";
+        UpdateDashboardStatus();
     }
     private string AdbExecutable => string.IsNullOrWhiteSpace(AdbPathBox.Text) ? "adb" : AdbPathBox.Text.Trim();
 
@@ -313,12 +348,14 @@ public sealed partial class MainWindow : Window
                     DeviceCombo.Items.Add(item.GetString() ?? "");
                 if (DeviceCombo.Items.Count > 0) DeviceCombo.SelectedIndex = 0;
                 _rootVerified = false;
+                _inspectedDeviceModel = string.Empty;
                 DeviceInfo.Text = $"{DeviceCombo.Items.Count} authorized device(s)";
                 Log(DeviceInfo.Text);
                 break;
             case "device":
                 var model = data.GetProperty("model").GetString() ?? "";
                 var android = data.GetProperty("android_version").GetString() ?? "";
+                _inspectedDeviceModel = model;
                 var rootProperty = data.GetProperty("root");
                 _rootVerified = rootProperty.ValueKind == JsonValueKind.String;
                 DeviceInfo.Text = $"{model}  |  Android {android}  |  " +
@@ -344,6 +381,7 @@ public sealed partial class MainWindow : Window
                 FooterText.Text = $"{file}  |  {bytes / 1048576.0:F1} MiB";
                 break;
             case "complete":
+                _sessionBackupStatus = "Completed";
                 Log($"Backup verified and saved: {data.GetProperty("folder").GetString()}");
                 break;
             case "verified":
@@ -522,6 +560,8 @@ public sealed partial class MainWindow : Window
             Log("Choose one app or media folder to back up.");
             return;
         }
+        _sessionBackupStatus = "In progress";
+        UpdateDashboardStatus();
         await RunBackendAsync(new
         {
             action = "backup",
