@@ -85,7 +85,7 @@
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Spacing="9">
                                     <TextBlock Text="YOUR ANDROID WORKSPACE" FontSize="11" FontWeight="SemiBold"
-                                               CharacterSpacing="1.4" Foreground="{ThemeResource MutedText}"/>
+                                               CharacterSpacing="14" Foreground="{ThemeResource MutedText}"/>
                                     <TextBlock Text="Your apps. Your data. Backed up."
                                                FontSize="25" FontWeight="SemiBold" TextWrapping="Wrap"
                                                MaxWidth="500"/>
