@@ -10,28 +10,36 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Padding="24,12" ColumnSpacing="14">
+        <!-- Compact native Fluent command header. Every status is connected to real UI state. -->
+        <Grid Grid.Row="0" Padding="28,15,28,15" ColumnSpacing="14">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="46"/>
+                <ColumnDefinition Width="48"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <Image Grid.Column="0" Width="40" Height="40" Source="ms-appx:///Assets/icon.svg"/>
+            <Border Width="46" Height="46" Background="{ThemeResource AccentWash}"
+                    CornerRadius="13" VerticalAlignment="Center">
+                <Image Source="ms-appx:///Assets/icon.svg" Width="34" Height="34"/>
+            </Border>
             <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
                 <TextBlock Text="Android Backup" FontSize="20" FontWeight="SemiBold"/>
-                <TextBlock Text="DESKTOP BACKUP  ·  ROOT ACCESS" Opacity="0.66" FontSize="12"/>
+                <TextBlock Text="BACKUP  /  RESTORE  /  SECURITY"
+                           FontSize="10" CharacterSpacing="1" Foreground="{ThemeResource MutedText}"/>
             </StackPanel>
-            <Border Grid.Column="2" Background="{ThemeResource Surface}" CornerRadius="16"
-                    Padding="12,7" VerticalAlignment="Center">
+            <Border Grid.Column="2" Background="{ThemeResource QuietSurface}"
+                    BorderBrush="{ThemeResource SurfaceStroke}" BorderThickness="1"
+                    CornerRadius="12" Padding="13,8" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <SymbolIcon Symbol="Setting"/>
-                    <TextBlock Text="Local backup" VerticalAlignment="Center"/>
+                    <SymbolIcon Symbol="Sync" Foreground="{ThemeResource MutedText}"/>
+                    <TextBlock x:Name="HeaderStatusText" Text="Waiting for Android"
+                               Foreground="{ThemeResource MutedText}" FontSize="12"
+                               VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <NavigationView Grid.Row="1" x:Name="Shell" PaneDisplayMode="Left" MinHeight="0" VerticalAlignment="Stretch"
-                        OpenPaneLength="230" CompactPaneLength="56"
+        <NavigationView Grid.Row="1" x:Name="Shell" PaneDisplayMode="Left" MinHeight="0" VerticalAlignment="Stretch" Background="Transparent"
+                        OpenPaneLength="230" CompactPaneLength="52"
                         IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
                         IsPaneToggleButtonVisible="False"
                         SelectionChanged="OnNavigationChanged">
@@ -55,63 +63,158 @@
                     <NavigationViewItem.Icon><SymbolIcon Symbol="Setting"/></NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
-            <Grid Padding="24,10,24,18" MinHeight="0">
+            <Grid Padding="24,12,24,18" MinHeight="0">
                 <ScrollViewer x:Name="OverviewPage" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                               VerticalScrollMode="Enabled" VerticalScrollBarVisibility="Visible"
                               HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Spacing="0" MaxWidth="920" HorizontalAlignment="Stretch">
-                        <TextBlock Text="Overview" FontSize="26" FontWeight="SemiBold"/>
-                        <TextBlock Text="Back up applications, protected data and personal files from your Android."
-                                   Opacity="0.7" TextWrapping="Wrap" Margin="0,6,0,20"/>
-                        <Border Background="#1A4D46" CornerRadius="12" Padding="18" Margin="0,0,0,16">
-                            <Grid ColumnSpacing="12">
+                    <StackPanel MaxWidth="1080" Spacing="12" HorizontalAlignment="Stretch">
+                        <StackPanel Spacing="6" Margin="0,2,0,12">
+                            <TextBlock Text="Overview" Style="{StaticResource PageHeading}"/>
+                            <TextBlock Text="A single place for rooted app backups, recovery, and storage health."
+                                       Style="{StaticResource SectionDescription}"/>
+                        </StackPanel>
+                        <!-- Primary actions use a real navigation destination, never decorative buttons. -->
+                        <Border Background="{ThemeResource HeroSurface}"
+                                BorderBrush="{ThemeResource SurfaceStroke}" BorderThickness="1"
+                                CornerRadius="20" Padding="24" Margin="0,0,0,6">
+                            <Grid ColumnSpacing="18">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="Full app backup" FontSize="18" FontWeight="SemiBold" Foreground="#B5F5E7"/>
-                                    <TextBlock Text="APK + splits · private data · OBB · app media"
-                                               TextWrapping="Wrap" Foreground="#DCEFEB"/>
-                                    <TextBlock Text="Root required for protected app data" FontSize="12" Opacity="0.75"/>
+                                <StackPanel Spacing="9">
+                                    <TextBlock Text="YOUR ANDROID WORKSPACE" FontSize="11" FontWeight="SemiBold"
+                                               CharacterSpacing="1.4" Foreground="{ThemeResource MutedText}"/>
+                                    <TextBlock Text="Your apps. Your data. Backed up."
+                                               FontSize="25" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               MaxWidth="500"/>
+                                    <TextBlock Text="Choose your apps, save private data with temporary root, and restore only after checking compatibility."
+                                               Style="{StaticResource SectionDescription}" MaxWidth="540"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Content="Restore app data" Click="OpenRestore_Click"
-                                        HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="9">
+                                    <Button Content="Choose apps" Click="OpenApplications_Click"
+                                            Style="{StaticResource AccentButtonStyle}"
+                                            HorizontalAlignment="Stretch" MinWidth="132"/>
+                                    <Button Content="Restore data" Click="OpenRestore_Click"
+                                            HorizontalAlignment="Stretch"/>
+                                </StackPanel>
                             </Grid>
                         </Border>
+
+                        <!-- Four actual live status values. No simulated storage or backup metrics. -->
+                        <Grid ColumnSpacing="12" RowSpacing="12" Margin="0,0,0,7">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource SurfaceCard}" Margin="0">
+                                <StackPanel Spacing="9">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <SymbolIcon Symbol="CellPhone" Foreground="{ThemeResource MutedText}"/>
+                                        <TextBlock Text="DEVICE" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource MutedText}"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="OverviewDeviceValue" Text="Not connected"
+                                               FontSize="19" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="ADB connection" Style="{StaticResource SectionDescription}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SurfaceCard}" Margin="0">
+                                <StackPanel Spacing="9">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <SymbolIcon Symbol="Shield" Foreground="{ThemeResource MutedText}"/>
+                                        <TextBlock Text="ROOT STATUS" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource MutedText}"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="OverviewRootValue" Text="Not verified"
+                                               FontSize="19" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="Required for private app data" Style="{StaticResource SectionDescription}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource SurfaceCard}" Margin="0">
+                                <StackPanel Spacing="9">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <SymbolIcon Symbol="AllApps" Foreground="{ThemeResource MutedText}"/>
+                                        <TextBlock Text="SELECTED APPS" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource MutedText}"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="OverviewAppsValue" Text="0 selected"
+                                               FontSize="19" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Use Applications to change" Style="{StaticResource SectionDescription}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SurfaceCard}" Margin="0">
+                                <StackPanel Spacing="9">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <SymbolIcon Symbol="Save" Foreground="{ThemeResource MutedText}"/>
+                                        <TextBlock Text="BACKUP SESSION" FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{ThemeResource MutedText}"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="OverviewBackupValue" Text="Not started"
+                                               FontSize="19" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="Current application session" Style="{StaticResource SectionDescription}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="14">
-                                <TextBlock Text="Device connection" FontSize="17" FontWeight="SemiBold"/>
-                                <TextBlock Text="Connect by USB, enable debugging and approve this computer on the phone."
-                                           Opacity="0.7" TextWrapping="Wrap"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="5">
+                                        <TextBlock Text="Device connection" Style="{StaticResource SectionHeading}"/>
+                                        <TextBlock Text="Enable USB debugging and authorize this PC on your Android device."
+                                                   Style="{StaticResource SectionDescription}"/>
+                                    </StackPanel>
+                                    <SymbolIcon Grid.Column="1" Symbol="CellPhone" Foreground="{ThemeResource MutedText}"/>
+                                </Grid>
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <ComboBox x:Name="DeviceCombo" MinWidth="240" SelectionChanged="DeviceSelection_Changed"
+                                    <ComboBox x:Name="DeviceCombo" MinWidth="205" MaxWidth="390"
+                                              SelectionChanged="DeviceSelection_Changed"
                                               PlaceholderText="No authorized devices"/>
-                                    <Button Content="Refresh devices" Click="Refresh_Click"/>
+                                    <Button Content="Refresh" Click="Refresh_Click"/>
                                     <Button Content="Check root" Click="Inspect_Click"/>
                                 </StackPanel>
-                                <TextBlock x:Name="DeviceInfo" Text="Not connected" Opacity="0.8"/>
+                                <TextBlock x:Name="DeviceInfo" Text="Not connected"
+                                           Style="{StaticResource SectionDescription}"/>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="14">
-                                <TextBlock Text="Backup location" FontSize="17" FontWeight="SemiBold"/>
+                                <TextBlock Text="Backup destination" Style="{StaticResource SectionHeading}"/>
                                 <Grid ColumnSpacing="10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="DestinationBox" PlaceholderText="Select backup folder"/>
-                                    <Button Grid.Column="1" Content="Browse..." Click="Destination_Click"/>
+                                    <TextBox x:Name="DestinationBox" PlaceholderText="Choose a local backup folder"/>
+                                    <Button Grid.Column="1" Content="Browse folder" Click="Destination_Click"/>
                                 </Grid>
-                                <CheckBox x:Name="StopAppsCheck" Content="Force-stop apps for a more consistent backup"/>
-                                <TextBlock Text="Backups currently contain unencrypted private data. Use a trusted local disk."
-                                           Foreground="DarkOrange" TextWrapping="Wrap"/>
+                                <CheckBox x:Name="StopAppsCheck"
+                                          Content="Force-stop selected apps for a more consistent backup"/>
+                                <InfoBar IsOpen="True" IsClosable="False" Severity="Warning"
+                                         Title="Local backups are not encrypted"
+                                         Message="Keep your private app-data archives on a trusted drive."/>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource SurfaceCard}">
                             <StackPanel Spacing="12">
-                                <TextBlock Text="Recent activity" FontSize="17" FontWeight="SemiBold"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Activity" Style="{StaticResource SectionHeading}"/>
+                                    <TextBlock Grid.Column="1" Text="This session" FontSize="12"
+                                               Foreground="{ThemeResource MutedText}" VerticalAlignment="Center"/>
+                                </Grid>
                                 <ListView x:Name="ActivityList" Height="210" SelectionMode="None"/>
                             </StackPanel>
                         </Border>
