@@ -12,23 +12,48 @@
             </ResourceDictionary.MergedDictionaries>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="AppCanvas" Color="#DB151A21"/>
-                    <SolidColorBrush x:Key="Surface" Color="#F0232A32"/>
-                    <SolidColorBrush x:Key="SurfaceStroke" Color="#4B5865"/>
+                    <SolidColorBrush x:Key="AppCanvas" Color="#0D101720"/>
+                    <SolidColorBrush x:Key="Surface" Color="#E9232B36"/>
+                    <SolidColorBrush x:Key="SurfaceStroke" Color="#42556374"/>
+                    <SolidColorBrush x:Key="HeroSurface" Color="#263D51"/>
+                    <SolidColorBrush x:Key="AccentWash" Color="#254672"/>
+                    <SolidColorBrush x:Key="MutedText" Color="#BCC8D5"/>
+                    <SolidColorBrush x:Key="PositiveText" Color="#8BE9C2"/>
+                    <SolidColorBrush x:Key="QuietSurface" Color="#19232F"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="AppCanvas" Color="#EAF5F7FA"/>
-                    <SolidColorBrush x:Key="Surface" Color="#F9FFFFFF"/>
-                    <SolidColorBrush x:Key="SurfaceStroke" Color="#DCE3E9"/>
+                    <SolidColorBrush x:Key="AppCanvas" Color="#F3F6FA"/>
+                    <SolidColorBrush x:Key="Surface" Color="#FCFFFFFF"/>
+                    <SolidColorBrush x:Key="SurfaceStroke" Color="#D7E0EA"/>
+                    <SolidColorBrush x:Key="HeroSurface" Color="#E3EEFB"/>
+                    <SolidColorBrush x:Key="AccentWash" Color="#EAF3FF"/>
+                    <SolidColorBrush x:Key="MutedText" Color="#556577"/>
+                    <SolidColorBrush x:Key="PositiveText" Color="#166C4B"/>
+                    <SolidColorBrush x:Key="QuietSurface" Color="#ECF2F9"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
             <Style x:Key="SurfaceCard" TargetType="Border">
                 <Setter Property="Background" Value="{ThemeResource Surface}"/>
                 <Setter Property="BorderBrush" Value="{ThemeResource SurfaceStroke}"/>
                 <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="CornerRadius" Value="14"/>
+                <Setter Property="CornerRadius" Value="18"/>
                 <Setter Property="Padding" Value="22"/>
-                <Setter Property="Margin" Value="0,0,0,16"/>
+                <Setter Property="Margin" Value="0,0,0,14"/>
+            </Style>
+            <Style x:Key="PageHeading" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="30"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+            </Style>
+            <Style x:Key="SectionHeading" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="19"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+            </Style>
+            <Style x:Key="SectionDescription" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource MutedText}"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="FontSize" Value="13"/>
             </Style>
         </ResourceDictionary>
     </Application.Resources>
