@@ -513,10 +513,12 @@ public sealed partial class MainWindow : Window
         }
         catch (OperationCanceledException)
         {
+            if (_sessionBackupStatus == "In progress") _sessionBackupStatus = "Cancelled";
             Log("Operation cancelled. A partial backup must not be treated as complete.");
         }
         catch (Exception error)
         {
+            if (_sessionBackupStatus == "In progress") _sessionBackupStatus = "Failed";
             Log($"Operation failed: {error.Message}");
             await ShowDialogAsync("Operation failed", error.Message);
         }
