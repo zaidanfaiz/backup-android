@@ -131,7 +131,6 @@ pub fn verify_backup(directory: &Path) -> Result<usize> {
     Ok(manifest.artifacts.len())
 }
 
-
 /// Verify only artifacts belonging to one selected app, avoiding a full
 /// multi-app backup rehash each time an app is checked or restored.
 /// Callers must separately validate manifest completeness and device identity.
@@ -139,12 +138,17 @@ pub fn verify_package_artifacts(directory: &Path, package: &str) -> Result<usize
     if !crate::adb::valid_package(package) {
         bail!("Invalid Android package name");
     }
-    let bytes = fs::read(directory.join("manifest.json")).context("Unable to read manifest.json")?;
+    let bytes =
+        fs::read(directory.join("manifest.json")).context("Unable to read manifest.json")?;
     let manifest: Manifest = serde_json::from_slice(&bytes)?;
     if manifest.format_version != FORMAT_VERSION || !manifest.complete {
         bail!("Incomplete backup or unsupported format");
     }
-    if !manifest.selected_packages.iter().any(|item| item == package) {
+    if !manifest
+        .selected_packages
+        .iter()
+        .any(|item| item == package)
+    {
         bail!("Package is not included in this backup");
     }
     let prefix = format!("apps/{package}/");
@@ -158,8 +162,8 @@ pub fn verify_package_artifacts(directory: &Path, package: &str) -> Result<usize
             continue;
         }
         let target = directory.join(&relative);
-        let (size, sha) = digest_file(&target)
-            .with_context(|| format!("Unable to read {}", artifact.path))?;
+        let (size, sha) =
+            digest_file(&target).with_context(|| format!("Unable to read {}", artifact.path))?;
         if size != artifact.bytes || sha != artifact.sha256 {
             bail!("Backup verification failed: {}", artifact.path);
         }
