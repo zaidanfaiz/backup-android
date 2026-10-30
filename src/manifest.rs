@@ -131,9 +131,55 @@ pub fn verify_backup(directory: &Path) -> Result<usize> {
     Ok(manifest.artifacts.len())
 }
 
+
+/// Verify only artifacts belonging to one selected app, avoiding a full
+/// multi-app backup rehash each time an app is checked or restored.
+/// Callers must separately validate manifest completeness and device identity.
+pub fn verify_package_artifacts(directory: &Path, package: &str) -> Result<usize> {
+    if !crate::adb::valid_package(package) {
+        bail!("Invalid Android package name");
+    }
+    let bytes = fs::read(directory.join("manifest.json")).context("Unable to read manifest.json")?;
+    let manifest: Manifest = serde_json::from_slice(&bytes)?;
+    if manifest.format_version != FORMAT_VERSION || !manifest.complete {
+        bail!("Incomplete backup or unsupported format");
+    }
+    if !manifest.selected_packages.iter().any(|item| item == package) {
+        bail!("Package is not included in this backup");
+    }
+    let prefix = format!("apps/{package}/");
+    let mut verified = 0usize;
+    for artifact in &manifest.artifacts {
+        let relative = PathBuf::from(&artifact.path);
+        if !is_safe_relative(&relative) {
+            bail!("Manifest contains an unsafe relative path");
+        }
+        if !artifact.path.replace('\\', "/").starts_with(&prefix) {
+            continue;
+        }
+        let target = directory.join(&relative);
+        let (size, sha) = digest_file(&target)
+            .with_context(|| format!("Unable to read {}", artifact.path))?;
+        if size != artifact.bytes || sha != artifact.sha256 {
+            bail!("Backup verification failed: {}", artifact.path);
+        }
+        verified += 1;
+    }
+    if verified == 0 {
+        bail!("No backed-up artifacts found for {package}");
+    }
+    Ok(verified)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn verify_rejects_invalid_package_before_reading_files() {
+        let unused = std::env::temp_dir();
+        assert!(verify_package_artifacts(&unused, "../traversal").is_err());
+    }
 
     #[test]
     fn reject_unsafe_manifest_paths() {
